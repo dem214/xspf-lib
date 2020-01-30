@@ -76,7 +76,7 @@ class Track():
 
     @property
     def xml_element(self) -> ET.Element:
-        """Create xml.ElementTree.Element of the track."""
+        """Create `xml.ElementTree.Element` of the track."""
         track = ET.Element('track')
         if self.location is not None:
             for loc in self.location:
@@ -157,7 +157,7 @@ class Playlist():
 
     @property
     def xml_element(self) -> ET.Element:
-        """Create xml.ElementTree.Element of the playlist."""
+        """Create `xml.ElementTree.Element` of the playlist."""
         playlist = ET.Element('playlist', {'version': "1",
                                            'xmlns': "http://xspf.org/ns/0/"})
         if self.title is not None:
@@ -191,7 +191,7 @@ class Playlist():
 
     @property
     def xml_eltree(self) -> ET.ElementTree:
-        """Return xml.etree.ElementTree.ElementTree object of playlist."""
+        """Return `xml.etree.ElementTree.ElementTree` object of playlist."""
         return ET.ElementTree(element=self.xml_element)
 
     def write(self, file):

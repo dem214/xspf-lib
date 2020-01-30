@@ -196,9 +196,3 @@ class Playlist():
 
     def write(self, file):
         self.xml_eltree.write(file, encoding="UTF-8", xml_declaration=True)
-
-tr = Track(title='pl1')
-tr2 = Track(location='here')
-tr3 = Track(location=['here', 'we', 'go'])
-pl = Playlist(title='pl', trackList=[tr, tr2, tr3])
-pl.write('pl.xspf')

@@ -17,8 +17,8 @@ Install and update via `pip`_:
 License
 -------
 
-The license of the project is MIT License - see _LICENSE_ file for details.
+The license of the project is MIT License - see LICENSE_ file for details.
 
-.. _LICENE
+.. _LICENSE https://github.com/dem214/xspf-lib/blob/master/LICENSE
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart

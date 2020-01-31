@@ -10,7 +10,7 @@ setuptools.setup(
     author_email="dem214overlord@gmail.com",
     description="Library for work with xspf format",
     long_description=long_desc,
-    long_description_content_type="text/rst",
+    long_description_content_type="text/x-rst",
     url="https://github.com/dem214/xspf-lib",
     packages=setuptools.find_packages(),
     classifiers=[

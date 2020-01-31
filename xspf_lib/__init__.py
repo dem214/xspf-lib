@@ -1,6 +1,8 @@
+"""Module helps to work with xspf playlists."""
 import xml.etree.ElementTree as ET
 from typing import Iterable, Optional, Union
 from datetime import datetime, timezone
+from collections import UserList
 
 URI = str
 
@@ -74,6 +76,19 @@ class Track():
                  'info', 'image', 'album', 'trackNum', 'duration', 'link',
                  'meta', 'extension')
 
+    def __repr__(self):
+        """Return representation `repr(self)`."""
+        repr = "<Track"
+        if self.Title is not None:
+            repr += f'"{self.name}"'
+        else:
+            repr += " NONAME"
+        if self.location is not None:
+            repr += f' at "{self.location[0]}">'
+        else:
+            repr += '>'
+        return repr
+
     @property
     def xml_element(self) -> ET.Element:
         """Create `xml.ElementTree.Element` of the track."""
@@ -109,7 +124,7 @@ class Track():
         """Return XML formated entity of track."""
         return ET.dump(self.xml_element)
 
-class Playlist():
+class Playlist(UserList):
     def __init__(self,
                  title: Optional[str] = None,
                  creator: Optional[str] = None,
@@ -123,7 +138,7 @@ class Playlist():
                  link=None,
                  meta=None,
                  extension=None,
-                 trackList: Optional[Iterable[Track]] = list()) -> None:
+                 trackList: Iterable[Track] = list()) -> None:
         """
         Parameters:
         :param title: Title of the playlist.
@@ -154,6 +169,19 @@ class Playlist():
         self.meta = meta
         self.extension = extension
         self.trackList = list(trackList)
+
+    @property
+    def data(self):
+        """`self.data` member required by `collections.UserList` class."""
+        return self.trackList
+
+    def __repr__(self):
+        """Return representation `repr.self`."""
+        repr = "<Playlist"
+        if self.title is not None:
+            repr += f' "{self.title}"'
+        repr += f': {len(self.trackList)} tracks>'
+        return repr
 
     @property
     def xml_element(self) -> ET.Element:

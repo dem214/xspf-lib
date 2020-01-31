@@ -17,6 +17,8 @@ Install and update via `pip`_:
 License
 -------
 
-The license of the project is MIT License - see `<LICENSE>` file for details.
+The license of the project is MIT License - see _LICENSE_ file for details.
+
+.. _LICENE
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart

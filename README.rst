@@ -7,7 +7,7 @@ Library to work with xspf.
 Installing
 ----------
 Install and update via `pip`_:
-..code-block::text
+.. code-block:: text
     pip install -U xspf-lib
 
 

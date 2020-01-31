@@ -19,6 +19,6 @@ License
 
 The license of the project is MIT License - see LICENSE_ file for details.
 
-.. _LICENSE https://github.com/dem214/xspf-lib/blob/master/LICENSE
+.. _LICENSE: https://github.com/dem214/xspf-lib/blob/master/LICENSE
 
 .. _pip: https://pip.pypa.io/en/stable/quickstart

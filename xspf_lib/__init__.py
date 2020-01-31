@@ -21,7 +21,7 @@ class Track():
                  duration: Optional[int] = None,
                  link: Iterable[Tuple[URI, URI]] = list(),
                  meta: Iterable[Tuple[URI, str]] = list(),
-                 extension: Iterable[Tuple[URI, str]] = list()) -> None:
+                 extension: Iterable[Tuple[URI, ET.Element]] = list()) -> None:
         """Track info class.
 
         Generate instances of tracks, ready to be put in Playlist class
@@ -43,8 +43,9 @@ class Track():
             `[(URI_of_resource_type, URI_of_resource), ...]`.
         :param meta: Metadata fields of playlist. Must be a list of tuples
             like `[(URI_of_resource_defining_the_metadata, value), ...]`
-        :param extensions: Extension of non-XSPF XML elements. Must be a list
-            tuples like `[(URI_of_application, text), ...]`
+        :param extension: Extension of non-XSPF XML elements. Must be a list
+            tuples like `[(URI_of_application, xml.etree.ElementTree.Element),
+            ...]`
         """
         if isinstance(location, URI):
             self.location = [location]
@@ -126,14 +127,13 @@ class Track():
             ET.SubElement(track, 'meta', {'rel': str(meta[0])})\
                 .text = str(meta[1])
         for extension in self.extension:
-            ET.SubElement(track, 'extension',
-                          {'application': str(extension[0])})\
-                .text = extension[1]
+            ext = ET.SubElement(track, 'extension',
+                                {'application': str(extension[0])})
+            ext.append(extension[1])
         return track
 
-    def dump(self):
-        """Return XML formated entity of track."""
-        return ET.dump(self.xml_element)
+    def xml_string(self, *args, **kwargs):
+        return ET.tostring(self.xml_element).decode()
 
 class Playlist(UserList):
     def __init__(self,
@@ -148,7 +148,7 @@ class Playlist(UserList):
                  attribution: Iterable['Playlist'] = list(),
                  link: Iterable[Tuple[URI, URI]] = list(),
                  meta: Iterable[Tuple[URI, str]] = list(),
-                 extension: Iterable[Tuple[URI, str]] = list(),
+                 extension: Iterable[Tuple[URI, ET.Element]] = list(),
                  trackList: Iterable[Track] = list()) -> None:
         """
         Playlist info class.
@@ -168,8 +168,9 @@ class Playlist(UserList):
             `[(URI_of_resource_type, URI_of_resource), ...]`.
         :param meta: Metadata fields of playlist. Must be a list of tuples
             like `[(URI_of_resource_defining_the_metadata, value), ...]`
-        :param extensions: Extension of non-XSPF XML elements. Must be a list
-            tuples like `[(URI_of_application, text), ...]`
+        :param extension: Extension of non-XSPF XML elements. Must be a list
+            tuples like `[(URI_of_application, xml.etree.ElementTree.Element),
+            ...]`
         :param trackList: Ordered list of track elements.
 
         """
@@ -235,9 +236,8 @@ class Playlist(UserList):
             ET.SubElement(playlist, 'meta', {'rel': str(meta[0])})\
                 .text = str(meta[1])
         for extension in self.extension:
-            ET.SubElement(playlist, 'extension',
-                          {'application': str(extension[0])})\
-                .text = extension[1]
+            ext = ET.SubElement(playlist, 'extension')
+            ext.append(extension)
         ET.SubElement(playlist, 'trackList').extend(
             (track.xml_element for track in self.trackList))
         return playlist

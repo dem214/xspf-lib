@@ -1,6 +1,6 @@
 """Module helps to work with xspf playlists."""
 import xml.etree.ElementTree as ET
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Union, Tuple
 from datetime import datetime, timezone
 from collections import UserList
 
@@ -19,9 +19,9 @@ class Track():
                  album: Optional[str] = None,
                  trackNum: Optional[int] = None,
                  duration: Optional[int] = None,
-                 link=None,
-                 meta=None,
-                 extension=None) -> None:
+                 link: Iterable[Tuple[URI, URI]] = list(),
+                 meta: Iterable[Tuple[URI, str]] = list(),
+                 extension: Iterable[Tuple[URI, str]] = list()) -> None:
         """Track info class.
 
         Generate instances of tracks, ready to be put in Playlist class
@@ -38,9 +38,13 @@ class Track():
         :param trackNum: integer giving the ordinal position of the media
         on the album
         :param duration: the time to render a resourse in milliseconds
-        :param link:
-        :param meta:
-        :param extensions:
+        :param link: The link elements allows playlist extended without the
+            use of XML namespace. Must be a list of tuples like
+            `[(URI_of_resource_type, URI_of_resource), ...]`.
+        :param meta: Metadata fields of playlist. Must be a list of tuples
+            like `[(URI_of_resource_defining_the_metadata, value), ...]`
+        :param extensions: Extension of non-XSPF XML elements. Must be a list
+            tuples like `[(URI_of_application, text), ...]`
         """
         if isinstance(location, URI):
             self.location = [location]
@@ -115,9 +119,16 @@ class Track():
             ET.SubElement(track, 'trackNum').text = str(self.trackNum)
         if self.duration is not None:
             ET.SubElement(track, 'duration').text = str(self.duration)
-        # TODO: add link to elements
-        # TODO: add meta to elements
-        # TODO: add extension to elements
+        for link in self.link:
+            ET.SubElement(track, 'link', {'rel': str(link[0])})\
+                .text = str(link[1])
+        for meta in self.meta:
+            ET.SubElement(track, 'meta', {'rel': str(meta[0])})\
+                .text = str(meta[1])
+        for extension in self.extension:
+            ET.SubElement(track, 'extension',
+                          {'application': str(extension[0])})\
+                .text = extension[1]
         return track
 
     def dump(self):
@@ -134,12 +145,14 @@ class Playlist(UserList):
                  identifier: Optional[URI] = None,
                  image: Optional[URI] = None,
                  license: Optional[URI] = None,
-                 attribution=None,
-                 link=None,
-                 meta=None,
-                 extension=None,
+                 attribution: Iterable['Playlist'] = list(),
+                 link: Iterable[Tuple[URI, URI]] = list(),
+                 meta: Iterable[Tuple[URI, str]] = list(),
+                 extension: Iterable[Tuple[URI, str]] = list(),
                  trackList: Iterable[Track] = list()) -> None:
         """
+        Playlist info class.
+
         Parameters:
         :param title: Title of the playlist.
         :param creator: Name of the entity that authored playlist.
@@ -149,11 +162,16 @@ class Playlist(UserList):
         :param identifier: Canonical URI for the playlist.
         :param image: URI of image to display in the absence of track image.
         :param license: URI of resource that describes the licence of playlist.
-        :param attribution:
-        :param link:
-        :param meta:
-        :param extension:
+        :param attribution: List of attributed playlists.
+        :param link: The link elements allows playlist extended without the
+            use of XML namespace. Must be a list of tuples like
+            `[(URI_of_resource_type, URI_of_resource), ...]`.
+        :param meta: Metadata fields of playlist. Must be a list of tuples
+            like `[(URI_of_resource_defining_the_metadata, value), ...]`
+        :param extensions: Extension of non-XSPF XML elements. Must be a list
+            tuples like `[(URI_of_application, text), ...]`
         :param trackList: Ordered list of track elements.
+
         """
         self.title = title
         self.creator = creator
@@ -185,7 +203,7 @@ class Playlist(UserList):
 
     @property
     def xml_element(self) -> ET.Element:
-        """Create `xml.ElementTree.Element` of the playlist."""
+        """Retrun `xml.ElementTree.Element` of the playlist."""
         playlist = ET.Element('playlist', {'version': "1",
                                            'xmlns': "http://xspf.org/ns/0/"})
         if self.title is not None:
@@ -205,10 +223,21 @@ class Playlist(UserList):
         ET.SubElement(playlist, 'date').text = self.date.isoformat()
         if self.license is not None:
             ET.SubElement(playlist, 'license').text = str(self.license)
-        # TODO: attribution
-        # TODO: link
-        # TODO: meta
-        # TODO: extension
+        if len(self.attribution) > 0:
+            attribution = ET.SubElement(playlist, 'attribution')
+            for attr in self.attribution[0:9]:
+                ET.SubElement(attribution, 'location').text = attr.location
+                ET.SubElement(attribution, 'identifier').text = attr.identifier
+        for link in self.link:
+            ET.SubElement(playlist, 'link', {'rel': str(link[0])})\
+                .text = str(link[1])
+        for meta in self.meta:
+            ET.SubElement(playlist, 'meta', {'rel': str(meta[0])})\
+                .text = str(meta[1])
+        for extension in self.extension:
+            ET.SubElement(playlist, 'extension',
+                          {'application': str(extension[0])})\
+                .text = extension[1]
         ET.SubElement(playlist, 'trackList').extend(
             (track.xml_element for track in self.trackList))
         return playlist
@@ -223,4 +252,5 @@ class Playlist(UserList):
         return ET.ElementTree(element=self.xml_element)
 
     def write(self, file):
+        """Write playlist into file."""
         self.xml_eltree.write(file, encoding="UTF-8", xml_declaration=True)

@@ -22,10 +22,10 @@ Example
                               creator="Queen",
                               album="Sheer Heart Attack",
                               trackNum=2,
-                         duration=177000,
-                          annotation="#2 in GB 1975",
-                          info="https://ru.wikipedia.org/wiki/Killer_Queen",
-                          image="file:///home/images/killer_queen_cover.png")
+                              duration=177000,
+                              annotation="#2 in GB 1975",
+                              info="https://ru.wikipedia.org/wiki/Killer_Queen",
+                              image="file:///home/images/killer_queen_cover.png")
 >>> anbtd = xspf.Track(location=["https://freemusic.example.com/loc.ogg",
                                  "file:///home/music/anbtd.mp3"],
                        title="Another One Bites the Dust",

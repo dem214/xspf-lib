@@ -133,7 +133,8 @@ class Track():
         return track
 
     def xml_string(self, *args, **kwargs):
-        return ET.tostring(self.xml_element).decode()
+        """Return XML representation of track."""
+        return ET.tostring(self.xml_element, encoding="UTF-8").decode()
 
 class Playlist(UserList):
     def __init__(self,
@@ -214,7 +215,7 @@ class Playlist(UserList):
         if self.annotation is not None:
             ET.SubElement(playlist, 'annotation').text = str(self.annotation)
         if self.info is not None:
-            ET.SubElement(playlist, 'title').text = str(self.info)
+            ET.SubElement(playlist, 'info').text = str(self.info)
         if self.location is not None:
             ET.SubElement(playlist, 'location').text = str(self.location)
         if self.identifier is not None:
@@ -236,8 +237,9 @@ class Playlist(UserList):
             ET.SubElement(playlist, 'meta', {'rel': str(meta[0])})\
                 .text = str(meta[1])
         for extension in self.extension:
-            ext = ET.SubElement(playlist, 'extension')
-            ext.append(extension)
+            ext = ET.SubElement(playlist, 'extension',
+                                {'application': str(extension[0])})
+            ext.append(extension[1])
         ET.SubElement(playlist, 'trackList').extend(
             (track.xml_element for track in self.trackList))
         return playlist
@@ -250,6 +252,10 @@ class Playlist(UserList):
     def xml_eltree(self) -> ET.ElementTree:
         """Return `xml.etree.ElementTree.ElementTree` object of playlist."""
         return ET.ElementTree(element=self.xml_element)
+
+    def xml_string(self):
+        """Return XML representation of playlist."""
+        return ET.tostring(self.xml_element, encoding="UTF-8").decode()
 
     def write(self, file):
         """Write playlist into file."""

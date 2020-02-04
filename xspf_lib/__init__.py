@@ -1,10 +1,21 @@
-"""Module helps to work with xspf playlists."""
+"""Module helps to work with xspf playlists.
+
+:examples:
+>>> import xspf_lib as xspf
+>>> killer_queen = xspf.Track(location="file:///home/music/killer_queen.mp3", title="Killer Queen", creator="Queen", album="Sheer Heart Attack", trackNum=2, duration=177000, annotation="#2 in GB 1975", info="https://ru.wikipedia.org/wiki/Killer_Queen", image="file:///home/images/killer_queen_cover.png")
+>>> anbtd = xspf.Track(location=["https://freemusic.example.com/loc.ogg", "file:///home/music/anbtd.mp3"], title="Another One Bites the Dust", creator="Queen", identifier="id1.group", link=[("link.namespace", "link.uri.info")], meta=[("meta.namespace", "METADATA_INFO")])
+>>> playlist = xspf.Playlist(title="Some Tracks", creator="myself", annotation="I did this only for examples!.", trackList=[killer_queen, anbtd])
+>>> print(playlist.xml_string())
+<playlist version="1" xmlns="http://xspf.org/ns/0/"><title>Some Tracks</title><creator>myself</creator><annotation>I did this only for examples!.</annotation><date>2020-02-03T14:29:59.199202+03:00</date><trackList><track><location>file:///home/music/killer_queen.mp3</location><title>Killer Queen</title><creator>Queen</creator><annotation>#2 in GB 1975</annotation><info>https://ru.wikipedia.org/wiki/Killer_Queen</info><image>file:///home/images/killer_queen_cover.png</image><album>Sheer Heart Attack</album><trackNum>2</trackNum><duration>177000</duration></track><track><location>https://freemusic.example.com/loc.ogg</location><location>file:///home/music/anbtd.mp3</location><identifier>id1.group</identifier><title>Another One Bites the Dust</title><creator>Queen</creator><link rel="link.namespace">link.uri.info</link><meta rel="meta.namespace">METADATA_INFO</meta></track></trackList></playlist>
+
+"""
 import xml.etree.ElementTree as ET
 from typing import Iterable, Optional, Union, Tuple
 from datetime import datetime, timezone
 from collections import UserList
 
 URI = str
+NS = {'xspf': "http://xspf.org/ns/0/"}
 
 
 class Track():
@@ -136,6 +147,42 @@ class Track():
         """Return XML representation of track."""
         return ET.tostring(self.xml_element, encoding="UTF-8").decode()
 
+    def _parse_xml(element):
+        if element.tag != ''.join(['{', NS["xspf"], '}track']):
+            raise TypeError("Track element not contain 'track' tag ",
+                            "or namespace setted wrong", object=element)
+        track = Track()
+        locations = element.findall("xspf:location", NS)
+        if len(locations) > 0:
+            track.location = [location.text for location in locations]
+        identifiers = element.findall("xspf:identifiers", NS)
+        if len(identifiers) > 0:
+            track.identifier = [identifier.text for identifier in identifiers]
+        def get_simple_element_and_set_attr(element, track, attr):
+            param = element.find("xspf:" + attr, NS)
+            if param is not None:
+                setattr(track, attr, param.text)
+        get_simple_element_and_set_attr(element, track, 'title')
+        get_simple_element_and_set_attr(element, track, 'creator')
+        get_simple_element_and_set_attr(element, track, 'annotation')
+        get_simple_element_and_set_attr(element, track, 'info')
+        get_simple_element_and_set_attr(element, track, 'image')
+        get_simple_element_and_set_attr(element, track, 'album')
+        trackNum = element.find("xspf:trackNum", NS)
+        if trackNum is not None:
+            track.trackNum = int(trackNum.text)
+        duration = element.find("xspf:duration", NS)
+        if duration is not None:
+            track.duration = int(duration.text)
+        for link in element.findall("xspf:link", NS):
+            track.link.append((link.get("rel"), link.text))
+        for meta in element.findall("xspf:meta", NS):
+            track.meta.append((link.get("rel"), meta.text))
+        for extension in element.findall("xspf:extension", NS):
+            track.extension.append((extension.get("application"),
+                                    extension.find('.')))
+        return track
+
 class Playlist(UserList):
     def __init__(self,
                  title: Optional[str] = None,
@@ -205,9 +252,9 @@ class Playlist(UserList):
 
     @property
     def xml_element(self) -> ET.Element:
-        """Retrun `xml.ElementTree.Element` of the playlist."""
+        """Return `xml.ElementTree.Element` of the playlist."""
         playlist = ET.Element('playlist', {'version': "1",
-                                           'xmlns': "http://xspf.org/ns/0/"})
+                                           'xmlns': NS['xspf']})
         if self.title is not None:
             ET.SubElement(playlist, 'title').text = str(self.title)
         if self.creator is not None:
@@ -260,3 +307,45 @@ class Playlist(UserList):
     def write(self, file):
         """Write playlist into file."""
         self.xml_eltree.write(file, encoding="UTF-8", xml_declaration=True)
+
+    @classmethod
+    def parse(cls, filename):
+        tree = ET.parse(filename)
+        root = tree.getroot()
+        return cls._parse_xml(root)
+
+    @staticmethod
+    def _parse_xml(root):
+        playlist = Playlist()
+        def get_simple_element_and_set_attr(root, playlist, attr):
+            param = root.find("xspf:" + attr, NS)
+            if param is not None:
+                playlist.__setattr__(attr, param.text)
+        get_simple_element_and_set_attr(root, playlist, 'title')
+        get_simple_element_and_set_attr(root, playlist, 'creator')
+        get_simple_element_and_set_attr(root, playlist, 'annotation')
+        get_simple_element_and_set_attr(root, playlist, 'info')
+        get_simple_element_and_set_attr(root, playlist, 'location')
+        get_simple_element_and_set_attr(root, playlist, 'identifier')
+        get_simple_element_and_set_attr(root, playlist, 'image')
+        get_simple_element_and_set_attr(root, playlist, 'license')
+        date = root.find("xspf:date", NS)
+        if date is not None:
+            playlist.date = datetime.fromisoformat(date.text)
+        attribution = root.find("xspf:date", NS)
+        if attribution is not None:
+            # TODO: invent way to parse attribution
+            pass
+        for link in root.findall("xspf:link", NS):
+            playlist.link.append((link.get("rel"), link.text))
+        for meta in root.findall("xspf:meta", NS):
+            playlist.meta.append((link.get("rel"), meta.text))
+        for extension in root.findall("xspf:extension", NS):
+            playlist.extension.append((extension.get("application"),
+                                       extension.find('.')))
+        for track in root.find("xspf:trackList", NS):
+            playlist.append(Track._parse_xml(track))
+
+        return playlist
+
+    class BadVersionError(Exeption)

@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<playlist version="1" xmlns="http://xspf.org/ns/0/" xml:base="foo">
+	<title xml:base="foo">bar</title>
+	<creator xml:base="foo">bar</creator>
+	<annotation xml:base="foo">bar</annotation>
+	<info xml:base="foo">foo</info>
+	<location xml:base="foo">bar</location>
+	<identifier xml:base="foo">bar</identifier>
+	<image xml:base="foo">bar</image>
+	<date xml:base="foo">0001-01-01T01:01:01</date>
+	<license xml:base="foo">bar</license>
+	<attribution xml:base="foo">
+		<location xml:base="foo">bar</location>
+		<identifier xml:base="foo">bar</identifier>
+	</attribution>
+	<link rel="foo" xml:base="foo">bar</link>
+	<meta rel="foo" xml:base="foo">bar</meta>
+	<extension application="foo" xml:base="foo">
+		<one xml:base="foo">
+			<two xml:base="foo">
+				<three xml:base="foo">bar</three>
+			</two>
+		</one>
+	</extension>
+	<trackList xml:base="foo">
+		<track xml:base="foo">
+			<location xml:base="foo">bar</location>
+			<identifier xml:base="foo">bar</identifier>
+			<title xml:base="foo">bar</title>
+			<creator xml:base="foo">bar</creator>
+			<annotation xml:base="foo">bar</annotation>
+			<info xml:base="foo">bar</info>
+			<image xml:base="foo">bar</image>
+			<album xml:base="foo">bar</album>
+			<trackNum xml:base="foo">1</trackNum>
+			<duration xml:base="foo">0</duration>
+			<link rel="foo" xml:base="foo">bar</link>
+			<meta rel="foo" xml:base="foo">bar</meta>
+			<extension application="foo" xml:base="foo">
+				<three xml:base="foo">bar</three>
+			</extension>
+		</track>
+	</trackList>
+</playlist>

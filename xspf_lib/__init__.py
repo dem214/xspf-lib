@@ -17,6 +17,8 @@ from collections import UserList
 URI = str
 NS = {'xspf': "http://xspf.org/ns/0/"}
 
+ET.register_namespace('xspf', NS['xspf'])
+
 
 class Track():
     def __init__(self,
@@ -30,9 +32,9 @@ class Track():
                  album: Optional[str] = None,
                  trackNum: Optional[int] = None,
                  duration: Optional[int] = None,
-                 link: Iterable[Tuple[URI, URI]] = list(),
-                 meta: Iterable[Tuple[URI, str]] = list(),
-                 extension: Iterable[Tuple[URI, ET.Element]] = list()) -> None:
+                 link: Iterable[Tuple[URI, URI]] = [],
+                 meta: Iterable[Tuple[URI, str]] = [],
+                 extension: Iterable[Tuple[URI, ET.Element]] = []) -> None:
         """Track info class.
 
         Generate instances of tracks, ready to be put in Playlist class
@@ -84,9 +86,9 @@ class Track():
             self.duration = duration
         else:
             self.duration = None
-        self.link = link
-        self.meta = meta
-        self.extension = extension
+        self.link = list(link)
+        self.meta = list(meta)
+        self.extension = list(extension)
 
     __slots__ = ('location', 'identifier', 'title', 'creator', 'annotation',
                  'info', 'image', 'album', 'trackNum', 'duration', 'link',
@@ -177,11 +179,22 @@ class Track():
         for link in element.findall("xspf:link", NS):
             track.link.append((link.get("rel"), link.text))
         for meta in element.findall("xspf:meta", NS):
-            track.meta.append((link.get("rel"), meta.text))
+            track.meta.append((meta.get("rel"), meta.text))
         for extension in element.findall("xspf:extension", NS):
             track.extension.append((extension.get("application"),
-                                    extension.find('.')))
+                                    extension[0]))
         return track
+
+
+class Extension(ET.Element):
+    def __init__(self, application: URI,
+                 elements: Iterable[ET.Element] = [],
+                 attrib={},
+                 **extra) -> None:
+        super().__init__(tag='extension',
+                         attrib={'application': application, **attrib},
+                         **extra)
+
 
 class Playlist(UserList):
     def __init__(self,
@@ -193,11 +206,11 @@ class Playlist(UserList):
                  identifier: Optional[URI] = None,
                  image: Optional[URI] = None,
                  license: Optional[URI] = None,
-                 attribution: Iterable['Playlist'] = list(),
-                 link: Iterable[Tuple[URI, URI]] = list(),
-                 meta: Iterable[Tuple[URI, str]] = list(),
-                 extension: Iterable[Tuple[URI, ET.Element]] = list(),
-                 trackList: Iterable[Track] = list()) -> None:
+                 attribution: Iterable['Playlist'] = [],
+                 link: Iterable[Tuple[URI, URI]] = [],
+                 meta: Iterable[Tuple[URI, str]] = [],
+                 extension: Iterable[Extension] = [],
+                 trackList: Iterable[Track] = []) -> None:
         """
         Playlist info class.
 
@@ -217,8 +230,7 @@ class Playlist(UserList):
         :param meta: Metadata fields of playlist. Must be a list of tuples
             like `[(URI_of_resource_defining_the_metadata, value), ...]`
         :param extension: Extension of non-XSPF XML elements. Must be a list
-            tuples like `[(URI_of_application, xml.etree.ElementTree.Element),
-            ...]`
+            of xspf_lib.Extension objects.`
         :param trackList: Ordered list of track elements.
 
         """
@@ -232,9 +244,9 @@ class Playlist(UserList):
         self.date = datetime.now(timezone.utc).astimezone()
         self.license = license
         self.attribution = attribution
-        self.link = link
-        self.meta = meta
-        self.extension = extension
+        self.link = list(link)
+        self.meta = list(meta)
+        self.extension = list(extension)
         self.trackList = list(trackList)
 
     @property
@@ -339,13 +351,20 @@ class Playlist(UserList):
         for link in root.findall("xspf:link", NS):
             playlist.link.append((link.get("rel"), link.text))
         for meta in root.findall("xspf:meta", NS):
-            playlist.meta.append((link.get("rel"), meta.text))
+            playlist.meta.append((meta.get("rel"), meta.text))
         for extension in root.findall("xspf:extension", NS):
-            playlist.extension.append((extension.get("application"),
-                                       extension.find('.')))
+            playlist.extension.append(extension)
         for track in root.find("xspf:trackList", NS):
             playlist.append(Track._parse_xml(track))
 
         return playlist
 
-    class BadVersionError(Exeption)
+class Extension(ET.Element):
+    def __init__(self, application: URI,
+                 attrib={},
+                 elements: Iterable[ET.Element] = [],
+                 **extra) -> None:
+        super().__init__(self, tag='extension',
+                         attrib={'application': application, **attrib},
+                         **extra)
+        self.extend(elements)

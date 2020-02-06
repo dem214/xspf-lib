@@ -55,3 +55,39 @@ def test_playlist_extensive():
     # TODO: Add extension assertion
     assert len(pl.extension) == 1
     assert len(pl.trackList) == 0
+
+def test_playlist_inverted_order():
+    pl = Playlist.parse("playlist-inverted-order.xspf")
+    assert pl.title == "some text"
+    assert pl.creator == "some text"
+    assert pl.annotation == "some text"
+    assert pl.info == "http://example.com/"
+    assert pl.location == "http://example.com/"
+    assert pl.identifier == "http://example.com/"
+    assert pl.image == "http://example.com/"
+    assert pl.date == datetime(2005, 1, 8, 17, 10, 47,
+                               tzinfo=timezone(timedelta(hours=-5)))
+    assert pl.license == "http://example.com/"
+    # TODO: check attribution
+    assert pl.link[0] == ("http://example.com/",
+                          "http://example.com/")
+    assert len(pl.link) == 2
+    assert pl.meta[0] == ("http://example.com/", "value")
+    assert len(pl.meta) == 2
+    assert "extension" in pl.extension[0].tag
+    assert len(pl.extension) == 2
+    assert len(pl.trackList) == 0
+
+def test_playlist_namespace_nested_proper():
+    pl = Playlist.parse('playlist-namespace-nested-proper.xspf')
+    assert pl.extension[0].get('application') == "http://example.com/"
+
+def test_playlist_namespace_nondefault():
+    pl = Playlist.parse('playlist-namespace-nondefault.xspf')
+
+def test_playlist_namespace_two_additions():
+    pl = Playlist.parse("playlist-namespace-two-additions.xspf")
+
+def test_playlist_relative_paths():
+    pl = Playlist.parse("playlist-relative-paths.xspf")
+    assert pl[0].location[0] == "../01-Ain't Mine.flac"

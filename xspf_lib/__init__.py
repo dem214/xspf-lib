@@ -10,14 +10,57 @@
 
 """
 import xml.etree.ElementTree as ET
-from typing import Iterable, Optional, Union, Tuple
+from typing import Iterable, Optional, Union, Tuple, Dict
 from datetime import datetime, timezone
 from collections import UserList
+import urllib.parse as urlparse
 
 URI = str
 NS = {'xspf': "http://xspf.org/ns/0/"}
 
 ET.register_namespace('xspf', NS['xspf'])
+
+
+class Extension():
+    """Class for XML extensions of XSPF playlists and tracks."""
+
+    def __init__(self, application: URI,
+                 extra_attrib: Dict[str, str] = {},
+                 content: Iterable[ET.Element] = []) -> None:
+        """Create Extension for xspf_lib.Track and xspf_lib.Playlist.
+
+        Extension must have attribute `application` URI wich point to
+        extension standart. Extension can have an `elements` of type
+        `xml.etree.ElementTree.Element`. Addtional xml attributes are welcome.
+
+            Parameters
+            :param: application: URI of specification of extension
+            :param extra_attrib: list additionsl xml attributes
+                for xml extension
+            :param content: list of `xml.etree.ElementTree.Elements`,
+                content of extension
+
+        """
+        self.application = application
+        self.extra_attrib = extra_attrib
+        self.content = content
+
+    def _to_element(self) -> ET.Element:
+        """Extention to `xml.etree.ElementTree.Element` conversion."""
+        el = ET.Element('extension',
+                        attrib={'application': self.application,
+                                **self.extra_attrib},)
+        el.extend(self.content)
+        return el
+
+    @staticmethod
+    def _from_element(element) -> 'Extension':
+        """`xml.etree.ElementTree.Element` to Extension coversion."""
+        attribs = dict(
+            [item for item in element.items() if item[0] != "application"])
+        return Extension(application=element.get('application'),
+                         extra_attrib=attribs,
+                         content=list(element))
 
 
 class Track():
@@ -34,10 +77,12 @@ class Track():
                  duration: Optional[int] = None,
                  link: Iterable[Tuple[URI, URI]] = [],
                  meta: Iterable[Tuple[URI, str]] = [],
-                 extension: Iterable[Tuple[URI, ET.Element]] = []) -> None:
+                 extension: Iterable[Extension] = []) -> None:
         """Track info class.
 
-        Generate instances of tracks, ready to be put in Playlist class
+        Generate instances of tracks, ready to be put in Playlist class.
+
+        Parameters
         :param location: URI or list of URI of resourse to be rendered
         :param identifier: canonical ID or list of ID for this resourse
         :param title: name o fthe track
@@ -57,8 +102,8 @@ class Track():
         :param meta: Metadata fields of playlist. Must be a list of tuples
             like `[(URI_of_resource_defining_the_metadata, value), ...]`
         :param extension: Extension of non-XSPF XML elements. Must be a list
-            tuples like `[(URI_of_application, xml.etree.ElementTree.Element),
-            ...]`
+            tuples like `[Extension, ...]`
+
         """
         if isinstance(location, URI):
             self.location = [location]
@@ -113,7 +158,8 @@ class Track():
         track = ET.Element('track')
         if self.location is not None:
             for loc in self.location:
-                ET.SubElement(track, 'location').text = str(loc)
+                ET.SubElement(track, 'location').text = \
+                    str(urlparse.quote(loc, safe='/:'))
         if self.identifier is not None:
             for id in self.identifier:
                 ET.SubElement(track, 'identifier').text = str(id)
@@ -139,10 +185,7 @@ class Track():
         for meta in self.meta:
             ET.SubElement(track, 'meta', {'rel': str(meta[0])})\
                 .text = str(meta[1])
-        for extension in self.extension:
-            ext = ET.SubElement(track, 'extension',
-                                {'application': str(extension[0])})
-            ext.append(extension[1])
+        track.extend([extension._to_element() for extension in self.extension])
         return track
 
     def xml_string(self, *args, **kwargs):
@@ -156,14 +199,17 @@ class Track():
         track = Track()
         locations = element.findall("xspf:location", NS)
         if len(locations) > 0:
-            track.location = [location.text for location in locations]
+            track.location = [urlparse.unquote(location.text)
+                              for location in locations]
         identifiers = element.findall("xspf:identifiers", NS)
         if len(identifiers) > 0:
             track.identifier = [identifier.text for identifier in identifiers]
+
         def get_simple_element_and_set_attr(element, track, attr):
             param = element.find("xspf:" + attr, NS)
             if param is not None:
                 setattr(track, attr, param.text)
+
         get_simple_element_and_set_attr(element, track, 'title')
         get_simple_element_and_set_attr(element, track, 'creator')
         get_simple_element_and_set_attr(element, track, 'annotation')
@@ -181,19 +227,8 @@ class Track():
         for meta in element.findall("xspf:meta", NS):
             track.meta.append((meta.get("rel"), meta.text))
         for extension in element.findall("xspf:extension", NS):
-            track.extension.append((extension.get("application"),
-                                    extension[0]))
+            track.extension.append(Extension._from_element(extension))
         return track
-
-
-class Extension(ET.Element):
-    def __init__(self, application: URI,
-                 elements: Iterable[ET.Element] = [],
-                 attrib={},
-                 **extra) -> None:
-        super().__init__(tag='extension',
-                         attrib={'application': application, **attrib},
-                         **extra)
 
 
 class Playlist(UserList):
@@ -276,7 +311,8 @@ class Playlist(UserList):
         if self.info is not None:
             ET.SubElement(playlist, 'info').text = str(self.info)
         if self.location is not None:
-            ET.SubElement(playlist, 'location').text = str(self.location)
+            ET.SubElement(playlist, 'location').text = \
+                str(urlparse.quote(self.location, safe='/:'))
         if self.identifier is not None:
             ET.SubElement(playlist, 'identifier').text = str(self.identifier)
         if self.image is not None:
@@ -295,10 +331,8 @@ class Playlist(UserList):
         for meta in self.meta:
             ET.SubElement(playlist, 'meta', {'rel': str(meta[0])})\
                 .text = str(meta[1])
-        for extension in self.extension:
-            ext = ET.SubElement(playlist, 'extension',
-                                {'application': str(extension[0])})
-            ext.append(extension[1])
+        playlist.extend(
+            [extension._to_element() for extension in self.extension])
         ET.SubElement(playlist, 'trackList').extend(
             (track.xml_element for track in self.trackList))
         return playlist
@@ -316,9 +350,14 @@ class Playlist(UserList):
         """Return XML representation of playlist."""
         return ET.tostring(self.xml_element, encoding="UTF-8").decode()
 
-    def write(self, file):
+    def write(self, file_or_filename, encoding="utf-8"):
         """Write playlist into file."""
-        self.xml_eltree.write(file, encoding="UTF-8", xml_declaration=True)
+        self.xml_eltree.write(file_or_filename,
+                              encoding="UTF-8",
+                              method="xml",
+                              short_empty_elements=True,
+                              default_namespace=NS["xspf"],
+                              xml_declaration=True)
 
     @classmethod
     def parse(cls, filename):
@@ -329,21 +368,25 @@ class Playlist(UserList):
     @staticmethod
     def _parse_xml(root):
         playlist = Playlist()
+
         def get_simple_element_and_set_attr(root, playlist, attr):
             param = root.find("xspf:" + attr, NS)
             if param is not None:
                 playlist.__setattr__(attr, param.text)
+
         get_simple_element_and_set_attr(root, playlist, 'title')
         get_simple_element_and_set_attr(root, playlist, 'creator')
         get_simple_element_and_set_attr(root, playlist, 'annotation')
         get_simple_element_and_set_attr(root, playlist, 'info')
-        get_simple_element_and_set_attr(root, playlist, 'location')
+        location = root.find("xspf:location", NS)
+        if location is not None:
+            playlist.location = urlparse.unquote(location.text)
         get_simple_element_and_set_attr(root, playlist, 'identifier')
         get_simple_element_and_set_attr(root, playlist, 'image')
         get_simple_element_and_set_attr(root, playlist, 'license')
         date = root.find("xspf:date", NS)
         if date is not None:
-            playlist.date = datetime.fromisoformat(date.text)
+            playlist.date = datetime.fromisoformat(date.text.strip())
         attribution = root.find("xspf:date", NS)
         if attribution is not None:
             # TODO: invent way to parse attribution
@@ -353,18 +396,8 @@ class Playlist(UserList):
         for meta in root.findall("xspf:meta", NS):
             playlist.meta.append((meta.get("rel"), meta.text))
         for extension in root.findall("xspf:extension", NS):
-            playlist.extension.append(extension)
+            playlist.extension.append(Extension._from_element(extension))
         for track in root.find("xspf:trackList", NS):
             playlist.append(Track._parse_xml(track))
 
         return playlist
-
-class Extension(ET.Element):
-    def __init__(self, application: URI,
-                 attrib={},
-                 elements: Iterable[ET.Element] = [],
-                 **extra) -> None:
-        super().__init__(self, tag='extension',
-                         attrib={'application': application, **attrib},
-                         **extra)
-        self.extend(elements)

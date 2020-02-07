@@ -1,4 +1,4 @@
-from xspf_lib import Track, Playlist
+from xspf_lib import Track, Playlist, Extension
 from xml.etree.ElementTree import Element
 from datetime import datetime
 
@@ -16,7 +16,8 @@ def test_track_init():
                link=[("link_type", "link_uri")],
                meta=[("meta_type1", "metadata1"),
                      ("meta_type1", "metadata2")],
-               extension=[("appl", Element('a', {'attr': "1"}))])
+               extension=[Extension("appl",
+                          content=[Element('a', {'attr': "1"})])])
     resp = '<track>'\
         '<location>here.mp3</location>'\
         '<identifier>id</identifier>'\
@@ -50,7 +51,9 @@ def test_playlist_init():
                   link=[("link_type", "link_uri")],
                   meta=[("meta_type1", "metadata1"),
                         ("meta_type1", "metadata2")],
-                  extension=[("appl", Element('a', {'attr': "1"}))],
+                  extension=[Extension("appl",
+                                       content=[
+                                           Element('a', {'attr': "1"})])],
                   trackList=[Track(title="tr1"),
                              Track(title="tr2")])
     pl.date = datetime(2020, 4, 20, 12, 30, 1, 123456)

@@ -11,10 +11,10 @@ testcase_dir = os.path.join(
 os.chdir(testcase_dir)
 
 def test_playlist_empty_annotation():
-    pl = Playlist.parse("playlist-empty-annotation.xspf")
+    Playlist.parse("playlist-empty-annotation.xspf")
 
 def test_playlist_empty_creator():
-    pl = Playlist.parse("playlist-empty-creator.xspf")
+    Playlist.parse("playlist-empty-creator.xspf")
 
 def test_track_whitespace_int():
     pl = Playlist.parse("track-whitespace-nonNegativeInteger.xspf")
@@ -22,10 +22,10 @@ def test_track_whitespace_int():
         assert pl[i].duration == 1
 
 def test_playlist_empty_title():
-    pl = Playlist.parse("playlist-empty-title.xspf")
+    Playlist.parse("playlist-empty-title.xspf")
 
 def test_playlist_empty_meta():
-    pl = Playlist.parse("playlist-empty-meta.xspf")
+    Playlist.parse("playlist-empty-meta.xspf")
 
 def test_playlist_extension():
     pl = Playlist.parse("playlist-extension.xspf")
@@ -83,10 +83,10 @@ def test_playlist_namespace_nested_proper():
     assert pl.extension[0].application == "http://example.com/"
 
 def test_playlist_namespace_nondefault():
-    pl = Playlist.parse('playlist-namespace-nondefault.xspf')
+    Playlist.parse('playlist-namespace-nondefault.xspf')
 
 def test_playlist_namespace_two_additions():
-    pl = Playlist.parse("playlist-namespace-two-additions.xspf")
+    Playlist.parse("playlist-namespace-two-additions.xspf")
 
 def test_playlist_relative_paths():
     pl = Playlist.parse("playlist-relative-paths.xspf")
@@ -128,7 +128,8 @@ def test_track_extensive():
     assert len(tr.location) == 1
     assert tr.location[0] == "http://example.com/my.mp3"
     assert len(tr.identifier) == 1
-    assert tr.identifier[0] == "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
+    assert tr.identifier[0] == \
+        "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
     assert tr.title == "My Way"
     assert tr.creator == "Frank Sinatra"
     assert tr.annotation == "This is my theme song."
@@ -166,7 +167,8 @@ def test_track_inverted_order():
     assert all(meta[0] == "http://example.com/" for meta in tr.meta)
     assert all(meta[1] == "value" for meta in tr.meta)
     assert len(tr.extension) == 2
-    assert all(extension.application == "http://example.com/" for extension in tr.extension)
+    assert all(extension.application == "http://example.com/"
+               for extension in tr.extension)
 
 def test_track_whitespace_anyURI():
     tr = Playlist.parse("track-whitespace-anyURI.xspf")[0]

@@ -10,7 +10,7 @@
 
 """
 import xml.etree.ElementTree as ET
-from typing import Iterable, Optional, Union, Tuple, Dict
+from typing import Iterable, Optional, Union, Dict
 from datetime import datetime, timezone
 from collections import UserList, namedtuple
 import urllib.parse as urlparse
@@ -54,13 +54,18 @@ class Extension():
         return el
 
     @staticmethod
-    def _from_element(element) -> 'Extension':
+    def _from_element(element: ET.Element) -> 'Extension':
         """`xml.etree.ElementTree.Element` to Extension coversion."""
+        application = element.get("application")
+        if application is None:
+            raise TypeError(
+                "Extension parsing missing attribute `application`")
         attribs = dict(
             [item for item in element.items() if item[0] != "application"])
-        return Extension(application=element.get('application'),
+        return Extension(application=application,
                          extra_attrib=attribs,
                          content=list(element))
+
 
 Link = namedtuple('Link', ['rel', 'content'])
 Meta = namedtuple('Meta', ['rel', 'content'])
@@ -100,8 +105,9 @@ class Track():
         on the album
         :param duration: the time to render a resourse in milliseconds
         :param link: The link elements allows playlist extended without the
-        use of XML namespace. List of entities of `xspf.Link` namedtuple.
-        :param meta: Metadata fields of playlist. List of entities of `xspf.Meta` namedtuple.
+        use of XML namespace. List of entities of `xspf_lib.Link` namedtuple.
+        :param meta: Metadata fields of playlist.
+        List of entities of `xspf_lib.Meta` namedtuple.
         :param extension: Extension of non-XSPF XML elements. Must be a list
         tuples like `[Extension, ...]`
 
@@ -205,7 +211,9 @@ class Track():
                               for location in locations]
         identifiers = element.findall("xspf:identifier", NS)
         if len(identifiers) > 0:
-            track.identifier = [identifier.text.strip() for identifier in identifiers]
+            track.identifier = [
+                identifier.text.strip() for identifier in identifiers
+            ]
 
         def get_simple_element_and_set_attr(element, track, attr):
             param = element.find("xspf:" + attr, NS)
@@ -263,7 +271,8 @@ class Playlist(UserList):
         :param attribution: List of attributed playlists.
         :param link: The link elements allows playlist extended without the
         use of XML namespace. List of entities of `xspf.Link` namedtuple.
-        :param meta: Metadata fields of playlist. List of entities of `xspf.Meta` namedtuple.
+        :param meta: Metadata fields of playlist.
+        List of entities of `xspf.Meta` namedtuple.
         :param extension: Extension of non-XSPF XML elements. Must be a list
             of xspf_lib.Extension objects.`
         :param trackList: Ordered list of track elements.
@@ -361,12 +370,20 @@ class Playlist(UserList):
 
     @classmethod
     def parse(cls, filename):
-        tree = ET.parse(filename)
-        root = tree.getroot()
-        return cls._parse_xml(root)
+        """Parse XSPF file into `xspf_lib.Playlist` entity."""
+        return cls._parse_xml(ET.parse(filename).getroot())
 
     @staticmethod
     def _parse_xml(root):
+        version = int(root.get("version"))
+        if version == 0:
+            raise ValueError("XSPF version 0 not maintained, "
+                             "switch to version 1.")
+        elif version != 1:
+            raise ValueError(
+                "The 'version' attribute must be 1.\n"
+                f"Your playlist version setted to {version}.\n"
+                "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
         playlist = Playlist()
 
         def get_simple_element_and_set_attr(root, playlist, attr):
@@ -392,7 +409,11 @@ class Playlist(UserList):
             # TODO: invent way to parse attribution
             pass
         for link in root.findall("xspf:link", NS):
-            playlist.link.append(Link(rel=link.get("rel"), content=link.text))
+            rel = link.get('rel')
+            if rel is None:
+                raise TypeError("`rel` attribute of link is missing\n"
+                    f"{ET.tostring(link)}")
+            playlist.link.append(Link(rel=rel, content=link.text))
         for meta in root.findall("xspf:meta", NS):
             playlist.meta.append(Meta(rel=meta.get("rel"), content=meta.text))
         for extension in root.findall("xspf:extension", NS):

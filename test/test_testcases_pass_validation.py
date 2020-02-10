@@ -122,3 +122,62 @@ def test_track_extension():
     assert tr.extension[0].application == "http://localhost/some/valid/url"
     assert len(tr.extension) == 1
     assert len(tr.extension[0].content) == 2
+
+def test_track_extensive():
+    tr = Playlist.parse("track-extensive.xspf")[0]
+    assert len(tr.location) == 1
+    assert tr.location[0] == "http://example.com/my.mp3"
+    assert len(tr.identifier) == 1
+    assert tr.identifier[0] == "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
+    assert tr.title == "My Way"
+    assert tr.creator == "Frank Sinatra"
+    assert tr.annotation == "This is my theme song."
+    assert tr.info == "http://franksinatra.com/myway"
+    assert tr.image == "http://franksinatra.com/img/myway"
+    assert tr.album == "Frank Sinatra's Greatest Hits"
+    assert tr.trackNum == 3
+    assert tr.duration == 19200
+    assert len(tr.link) == 1
+    assert tr.link[0][0] == "http://foaf.org/namespace/version1"
+    assert tr.link[0][1] == "http://socialnetwork.org/foaf/mary.rdfs"
+    assert len(tr.meta) == 1
+    assert tr.meta[0][0] == "http://example.org/key"
+    assert tr.meta[0][1] == "value"
+    assert len(tr.extension) == 1
+    assert tr.extension[0].application == "http://example.com"
+
+def test_track_inverted_order():
+    tr = Playlist.parse("track-inverted-order.xspf")[0]
+    assert len(tr.location) == 1
+    assert tr.location[0] == "http://example.com/"
+    assert len(tr.identifier) == 1
+    assert tr.identifier[0] == "http://example.com/"
+    assert tr.title == "some text"
+    assert tr.creator == "some text"
+    assert tr.annotation == "some text"
+    assert tr.info == "http://example.com/"
+    assert tr.image == "http://example.com/"
+    assert tr.trackNum == 2
+    assert tr.duration == 120000
+    assert len(tr.link) == 2
+    assert all(link[0] == "http://example.com/" for link in tr.link)
+    assert all(link[1] == "http://example.com/" for link in tr.link)
+    assert len(tr.meta) == 2
+    assert all(meta[0] == "http://example.com/" for meta in tr.meta)
+    assert all(meta[1] == "value" for meta in tr.meta)
+    assert len(tr.extension) == 2
+    assert all(extension.application == "http://example.com/" for extension in tr.extension)
+
+def test_track_whitespace_anyURI():
+    tr = Playlist.parse("track-whitespace-anyURI.xspf")[0]
+    assert len(tr.location) == 4
+    assert tr.location[0] == "http://example.com/no_whitespace/"
+    assert tr.location[1] == "http://example.com/whitespace_before/"
+    assert tr.location[2] == "http://example.com/whitespace_after/"
+    assert tr.location[3] == "http://example.com/whitespace_before_and_after/"
+
+def test_track_whitespace_nonNegativeInteger():
+    pl = Playlist.parse("track-whitespace-nonNegativeInteger.xspf")
+    assert len(pl) == 4
+    for tr in pl:
+        assert tr.duration == 1

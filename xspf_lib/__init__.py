@@ -142,8 +142,8 @@ class Track():
     def __repr__(self):
         """Return representation `repr(self)`."""
         repr = "<Track"
-        if self.Title is not None:
-            repr += f'"{self.name}"'
+        if self.title is not None:
+            repr += f'"{self.title}"'
         else:
             repr += " NONAME"
         if self.location is not None:
@@ -192,6 +192,7 @@ class Track():
         """Return XML representation of track."""
         return ET.tostring(self.xml_element, encoding="UTF-8").decode()
 
+    @staticmethod
     def _parse_xml(element):
         if element.tag != ''.join(['{', NS["xspf"], '}track']):
             raise TypeError("Track element not contain 'track' tag ",
@@ -199,11 +200,11 @@ class Track():
         track = Track()
         locations = element.findall("xspf:location", NS)
         if len(locations) > 0:
-            track.location = [urlparse.unquote(location.text)
+            track.location = [urlparse.unquote(location.text.strip())
                               for location in locations]
-        identifiers = element.findall("xspf:identifiers", NS)
+        identifiers = element.findall("xspf:identifier", NS)
         if len(identifiers) > 0:
-            track.identifier = [identifier.text for identifier in identifiers]
+            track.identifier = [identifier.text.strip() for identifier in identifiers]
 
         def get_simple_element_and_set_attr(element, track, attr):
             param = element.find("xspf:" + attr, NS)
@@ -380,7 +381,7 @@ class Playlist(UserList):
         get_simple_element_and_set_attr(root, playlist, 'info')
         location = root.find("xspf:location", NS)
         if location is not None:
-            playlist.location = urlparse.unquote(location.text)
+            playlist.location = urlparse.unquote(location.text.strip())
         get_simple_element_and_set_attr(root, playlist, 'identifier')
         get_simple_element_and_set_attr(root, playlist, 'image')
         get_simple_element_and_set_attr(root, playlist, 'license')

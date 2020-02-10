@@ -12,7 +12,7 @@
 import xml.etree.ElementTree as ET
 from typing import Iterable, Optional, Union, Tuple, Dict
 from datetime import datetime, timezone
-from collections import UserList
+from collections import UserList, namedtuple
 import urllib.parse as urlparse
 
 URI = str
@@ -62,6 +62,9 @@ class Extension():
                          extra_attrib=attribs,
                          content=list(element))
 
+Link = namedtuple('Link', ['rel', 'content'])
+Meta = namedtuple('Meta', ['rel', 'content'])
+
 
 class Track():
     def __init__(self,
@@ -75,8 +78,8 @@ class Track():
                  album: Optional[str] = None,
                  trackNum: Optional[int] = None,
                  duration: Optional[int] = None,
-                 link: Iterable[Tuple[URI, URI]] = [],
-                 meta: Iterable[Tuple[URI, str]] = [],
+                 link: Iterable[Link] = [],
+                 meta: Iterable[Meta] = [],
                  extension: Iterable[Extension] = []) -> None:
         """Track info class.
 
@@ -97,12 +100,10 @@ class Track():
         on the album
         :param duration: the time to render a resourse in milliseconds
         :param link: The link elements allows playlist extended without the
-            use of XML namespace. Must be a list of tuples like
-            `[(URI_of_resource_type, URI_of_resource), ...]`.
-        :param meta: Metadata fields of playlist. Must be a list of tuples
-            like `[(URI_of_resource_defining_the_metadata, value), ...]`
+        use of XML namespace. List of entities of `xspf.Link` namedtuple.
+        :param meta: Metadata fields of playlist. List of entities of `xspf.Meta` namedtuple.
         :param extension: Extension of non-XSPF XML elements. Must be a list
-            tuples like `[Extension, ...]`
+        tuples like `[Extension, ...]`
 
         """
         if isinstance(location, URI):
@@ -180,11 +181,11 @@ class Track():
         if self.duration is not None:
             ET.SubElement(track, 'duration').text = str(self.duration)
         for link in self.link:
-            ET.SubElement(track, 'link', {'rel': str(link[0])})\
-                .text = str(link[1])
+            ET.SubElement(track, 'link', {'rel': str(link.rel)})\
+                .text = str(link.content)
         for meta in self.meta:
-            ET.SubElement(track, 'meta', {'rel': str(meta[0])})\
-                .text = str(meta[1])
+            ET.SubElement(track, 'meta', {'rel': str(meta.rel)})\
+                .text = str(meta.content)
         track.extend([extension._to_element() for extension in self.extension])
         return track
 
@@ -224,9 +225,9 @@ class Track():
         if duration is not None:
             track.duration = int(duration.text)
         for link in element.findall("xspf:link", NS):
-            track.link.append((link.get("rel"), link.text))
+            track.link.append(Link(rel=link.get("rel"), content=link.text))
         for meta in element.findall("xspf:meta", NS):
-            track.meta.append((meta.get("rel"), meta.text))
+            track.meta.append(Meta(rel=meta.get("rel"), content=meta.text))
         for extension in element.findall("xspf:extension", NS):
             track.extension.append(Extension._from_element(extension))
         return track
@@ -243,8 +244,8 @@ class Playlist(UserList):
                  image: Optional[URI] = None,
                  license: Optional[URI] = None,
                  attribution: Iterable['Playlist'] = [],
-                 link: Iterable[Tuple[URI, URI]] = [],
-                 meta: Iterable[Tuple[URI, str]] = [],
+                 link: Iterable[Link] = [],
+                 meta: Iterable[Meta] = [],
                  extension: Iterable[Extension] = [],
                  trackList: Iterable[Track] = []) -> None:
         """
@@ -261,10 +262,8 @@ class Playlist(UserList):
         :param license: URI of resource that describes the licence of playlist.
         :param attribution: List of attributed playlists.
         :param link: The link elements allows playlist extended without the
-            use of XML namespace. Must be a list of tuples like
-            `[(URI_of_resource_type, URI_of_resource), ...]`.
-        :param meta: Metadata fields of playlist. Must be a list of tuples
-            like `[(URI_of_resource_defining_the_metadata, value), ...]`
+        use of XML namespace. List of entities of `xspf.Link` namedtuple.
+        :param meta: Metadata fields of playlist. List of entities of `xspf.Meta` namedtuple.
         :param extension: Extension of non-XSPF XML elements. Must be a list
             of xspf_lib.Extension objects.`
         :param trackList: Ordered list of track elements.
@@ -327,11 +326,11 @@ class Playlist(UserList):
                 ET.SubElement(attribution, 'location').text = attr.location
                 ET.SubElement(attribution, 'identifier').text = attr.identifier
         for link in self.link:
-            ET.SubElement(playlist, 'link', {'rel': str(link[0])})\
-                .text = str(link[1])
+            ET.SubElement(playlist, 'link', {'rel': str(link.rel)})\
+                .text = str(link.content)
         for meta in self.meta:
-            ET.SubElement(playlist, 'meta', {'rel': str(meta[0])})\
-                .text = str(meta[1])
+            ET.SubElement(playlist, 'meta', {'rel': str(meta.rel)})\
+                .text = str(meta.content)
         playlist.extend(
             [extension._to_element() for extension in self.extension])
         ET.SubElement(playlist, 'trackList').extend(
@@ -393,9 +392,9 @@ class Playlist(UserList):
             # TODO: invent way to parse attribution
             pass
         for link in root.findall("xspf:link", NS):
-            playlist.link.append((link.get("rel"), link.text))
+            playlist.link.append(Link(rel=link.get("rel"), content=link.text))
         for meta in root.findall("xspf:meta", NS):
-            playlist.meta.append((meta.get("rel"), meta.text))
+            playlist.meta.append(Meta(rel=meta.get("rel"), content=meta.text))
         for extension in root.findall("xspf:extension", NS):
             playlist.extension.append(Extension._from_element(extension))
         for track in root.find("xspf:trackList", NS):

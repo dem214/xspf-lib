@@ -31,8 +31,8 @@ Example
                        title="Another One Bites the Dust",
                        creator="Queen",
                        identifier="id1.group",
-                       link=[("link.namespace", "link.uri.info")],
-                       meta=[("meta.namespace", "METADATA_INFO")])
+                       link=[xspf.Link("link.namespace", "link.uri.info")],
+                       meta=[xspf.Meta("meta.namespace", "METADATA_INFO")])
 >>> playlist = xspf.Playlist(title="Some Tracks",
                              creator="myself",
                              annotation="I did this only for examples!.",

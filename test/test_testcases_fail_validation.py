@@ -1,4 +1,4 @@
-from xspf_lib import Playlist, Track, Extension
+from xspf_lib import Playlist, Track, Extension, Link, Meta
 import os
 import pytest
 
@@ -61,6 +61,11 @@ def test_playlist_link_rel_missing():
         ))
 
 
+def test_also_playlist_creation_without_link_rel():
+    with pytest.raises(TypeError):
+        Playlist(link=Link(content="file:/let_me_in"))
+
+
 def test_playlist_markup_annotation():
     with pytest.raises(ValueError):
         Playlist.parse(get_testfile(
@@ -94,3 +99,8 @@ def test_playlist_meta_rel_missing():
         Playlist.parse(get_testfile(
             "playlist-meta-rel-missing.xspf"
         ))
+
+
+def test_also_playlist_creation_without_meta_rel():
+    with pytest.raises(TypeError):
+        Playlist(meta=[Meta(content="imma content")])

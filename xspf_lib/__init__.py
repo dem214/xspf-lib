@@ -5,6 +5,7 @@ from typing import Iterable, Optional, Union, Dict
 from datetime import datetime, timezone
 from collections import UserList, namedtuple
 import urllib.parse as urlparse
+from dataclasses import dataclass
 
 __all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI"]
 
@@ -60,8 +61,35 @@ class Extension():
                          content=list(element))
 
 
-Link = namedtuple('Link', ['rel', 'content'])
-Meta = namedtuple('Meta', ['rel', 'content'])
+@dataclass
+class Link:
+    """Object representation of `link` element.
+
+    The link element allows XSPF to be extended without the use of
+    XML namespaces.
+
+    Content 2 arguments:
+        `rel` - URI of resourse type. (required)
+        `content` - URI of resourse.
+    """
+
+    rel: URI
+    content: URI = ''
+
+
+@dataclass()
+class Meta:
+    """Object representation of `meta` element.
+
+    The meta element allows metadata fields to be added to XSPF.
+
+    Content 2 arguments:
+        `rel` -- URI of resourse type. (required)
+        `content` -- value of metadata element. Usualy plain text.
+    """
+
+    rel: URI
+    content: str = ''
 
 
 class Track():
@@ -98,9 +126,9 @@ class Track():
         on the album
         :param duration: the time to render a resourse in milliseconds
         :param link: The link elements allows playlist extended without the
-        use of XML namespace. List of entities of `xspf_lib.Link` namedtuple.
+        use of XML namespace. List of entities of `xspf_lib.Link`.
         :param meta: Metadata fields of playlist.
-        List of entities of `xspf_lib.Meta` namedtuple.
+        List of entities of `xspf_lib.Meta`.
         :param extension: Extension of non-XSPF XML elements. Must be a list
         tuples like `[Extension, ...]`
 
@@ -263,9 +291,9 @@ class Playlist(UserList):
         :param license: URI of resource that describes the licence of playlist.
         :param attribution: List of attributed playlists.
         :param link: The link elements allows playlist extended without the
-        use of XML namespace. List of entities of `xspf.Link` namedtuple.
+        use of XML namespace. List of entities of `xspf.Link`.
         :param meta: Metadata fields of playlist.
-        List of entities of `xspf.Meta` namedtuple.
+        List of entities of `xspf.Meta`.
         :param extension: Extension of non-XSPF XML elements. Must be a list
             of xspf_lib.Extension objects.`
         :param trackList: Ordered list of track elements.
@@ -420,13 +448,13 @@ class Playlist(UserList):
             rel = link.get('rel')
             if rel is None:
                 raise TypeError("`rel` attribute of link is missing\n"
-                    f"{ET.tostring(link)}")
+                                f"{ET.tostring(link)}")
             playlist.link.append(Link(rel=rel, content=link.text))
         for meta in root.findall("xspf:meta", NS):
             rel = meta.get('rel')
             if rel is None:
                 raise TypeError("`rel` attribute of meta is missing\n"
-                    f"{ET.tostring(meta)}")
+                                f"{ET.tostring(meta)}")
             playlist.meta.append(Meta(rel=rel, content=meta.text))
         for extension in root.findall("xspf:extension", NS):
             playlist.extension.append(Extension._from_element(extension))

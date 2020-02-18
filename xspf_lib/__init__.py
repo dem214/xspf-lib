@@ -397,6 +397,8 @@ class Playlist(UserList):
     @staticmethod
     def _parse_xml(root):
         root_attribs = root.keys()
+        if 'version' not in root_attribs:
+            raise TypeError("version attribute of playlist is missing.")
         if not (root_attribs == ['version'] or root_attribs == [
                 'version', '{http://www.w3.org/XML/1998/namespace}base']):
             forbidden_attributes = list(root_attribs)
@@ -420,6 +422,9 @@ class Playlist(UserList):
                 "The 'version' attribute must be 1.\n"
                 f"Your playlist version setted to {version}.\n"
                 "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
+        if not root.tag[0] == '{':
+            raise TypeError("Playlist namespace attribute is missing.\n"
+                            f"{ET.tostring(root)}")
         playlist = Playlist()
 
         def get_simple_element_and_set_attr(root, playlist, attr):
@@ -458,7 +463,10 @@ class Playlist(UserList):
             playlist.meta.append(Meta(rel=rel, content=meta.text))
         for extension in root.findall("xspf:extension", NS):
             playlist.extension.append(Extension._from_element(extension))
-        for track in root.find("xspf:trackList", NS):
+        trackList = root.find("xspf:trackList", NS)
+        if trackList is None:
+            raise TypeError("trackList element not founded.")
+        for track in trackList:
             playlist.append(Track._parse_xml(track))
 
         return playlist

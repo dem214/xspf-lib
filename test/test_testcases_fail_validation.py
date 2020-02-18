@@ -104,3 +104,31 @@ def test_playlist_meta_rel_missing():
 def test_also_playlist_creation_without_meta_rel():
     with pytest.raises(TypeError):
         Playlist(meta=[Meta(content="imma content")])
+
+
+def test_playlist_missing_tracklist():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile(
+            "playlist-missingtracklist.xspf"
+        ))
+
+
+def test_also_playlist_create_empty_tracklist_element():
+    assert "<trackList />" in Playlist().xml_string()
+
+
+def test_playlist_missing_version():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile(
+            "playlist-missingversion.xspf"
+        ))
+
+
+def test_also_playlist_create_version_attribute():
+    assert 'version="1"' in Playlist().xml_string()
+
+
+def test_playlist_namespase_missing():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile(
+            "playlist-namespace-missing.xspf"))

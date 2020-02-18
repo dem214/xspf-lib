@@ -368,6 +368,21 @@ class Playlist(UserList):
 
     @staticmethod
     def _parse_xml(root):
+        root_attribs = root.keys()
+        if not (root_attribs == ['version'] or root_attribs == [
+                'version', '{http://www.w3.org/XML/1998/namespace}base']):
+            forbidden_attributes = list(root_attribs)
+            try:
+                forbidden_attributes.remove('version')
+            except ValueError:
+                pass
+            try:
+                forbidden_attributes.remove(
+                    '{http://www.w3.org/XML/1998/namespace}base')
+            except ValueError:
+                pass
+            raise TypeError("<playlist> element contains forbidden elements.\n"
+                            f"{forbidden_attributes}")
         version = int(root.get("version"))
         if version == 0:
             raise ValueError("XSPF version 0 not maintained, "
@@ -408,7 +423,11 @@ class Playlist(UserList):
                     f"{ET.tostring(link)}")
             playlist.link.append(Link(rel=rel, content=link.text))
         for meta in root.findall("xspf:meta", NS):
-            playlist.meta.append(Meta(rel=meta.get("rel"), content=meta.text))
+            rel = meta.get('rel')
+            if rel is None:
+                raise TypeError("`rel` attribute of meta is missing\n"
+                    f"{ET.tostring(meta)}")
+            playlist.meta.append(Meta(rel=rel, content=meta.text))
         for extension in root.findall("xspf:extension", NS):
             playlist.extension.append(Extension._from_element(extension))
         for track in root.find("xspf:trackList", NS):

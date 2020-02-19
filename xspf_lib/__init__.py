@@ -104,6 +104,17 @@ class Attribution:
         self.location = location
         self.identifier = identifier
 
+    def __repr__(self):
+        resp = "<Attribution {"
+        if self.location is not None:
+            resp += f"location={self.location}"
+            if self.identifier is not None:
+                resp += ', '
+        if self.identifier is not None:
+            resp += f"identifier={self.identifier}"
+        resp += "}>"
+        return resp
+
     def xml_elements(self):
         """Create generator of xml representation."""
         if self.location is not None:
@@ -422,8 +433,10 @@ class Playlist(UserList):
     @staticmethod
     def _parse_xml(root):
         root_attribs = root.keys()
+        # Version attribute check.
         if 'version' not in root_attribs:
             raise TypeError("version attribute of playlist is missing.")
+        # Forbidden attribute check -- all except `version` and `base`.
         if not (root_attribs == ['version'] or root_attribs == [
                 'version', '{http://www.w3.org/XML/1998/namespace}base']):
             forbidden_attributes = list(root_attribs)
@@ -438,18 +451,32 @@ class Playlist(UserList):
                 pass
             raise TypeError("<playlist> element contains forbidden elements.\n"
                             f"{forbidden_attributes}")
+        # Value of version checking.
         version = int(root.get("version"))
+        # 0 version not implemented
         if version == 0:
             raise ValueError("XSPF version 0 not maintained, "
                              "switch to version 1.")
+        # Another version than 1 not accepted.
         elif version != 1:
             raise ValueError(
                 "The 'version' attribute must be 1.\n"
                 f"Your playlist version setted to {version}.\n"
                 "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
+        # Check for namespace existing.
         if not root.tag[0] == '{':
             raise TypeError("Playlist namespace attribute is missing.\n"
                             f"{ET.tostring(root)}")
+        # Check for right namespace string.
+        if not root.tag.startswith(''.join(['{', NS["xspf"], '}'])):
+            raise ValueError("Namespace is wrong string.\n"
+                             f"Must be `{NS['xspf']}`.\n"
+                             f"Got `{root.tag.split('}')[0].lstrip('{')}`.")
+        # Playlist nonleaf content checking.
+        if root.text is not None and not root.text.isspace():
+            raise TypeError("Playlist nonleaf content is not allowed.\n"
+                            f"Got {root.text}")
+
         playlist = Playlist()
 
         def get_simple_element_and_set_attr(root, playlist, attr):
@@ -472,6 +499,10 @@ class Playlist(UserList):
             playlist.date = datetime.fromisoformat(date.text.strip())
         attribution = root.find("xspf:attribution", NS)
         if attribution is not None:
+            # Attribution nonleaf content checking.
+            if attribution.text is not None and not attribution.text.isspace():
+                raise TypeError("Attribution nonleaf content not allowed.\n"
+                                f"Got {attribution.text}")
             for atr in attribution:
                 print(atr.tag)
                 if atr.tag == ''.join(['{', NS['xspf'], '}location']):
@@ -485,6 +516,7 @@ class Playlist(UserList):
                         Attribution(identifier=atr.text)
                     )
                 else:
+                    # No `location` and `identifier` attribution is not allowed
                     raise TypeError("Forbidden element in attribution.\n"
                                     "Only `location` and `identifier` is "
                                     "allowed.\n"
@@ -506,6 +538,9 @@ class Playlist(UserList):
         trackList = root.find("xspf:trackList", NS)
         if trackList is None:
             raise TypeError("trackList element not founded.")
+        if trackList.text is not None and not trackList.text.isspace():
+            raise TypeError("trackList nonleaf content not allowed.\n"
+                            f"Got {trackList.text}")
         for track in trackList:
             playlist.append(Track._parse_xml(track))
 

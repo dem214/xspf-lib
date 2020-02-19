@@ -25,14 +25,12 @@ def test_playlist_attribute_forbidden_playlist():
 
 def test_playlist_baddate():
     with pytest.raises(ValueError):
-        Playlist.parse(get_testfile(
-            "playlist-baddate.xspf"))
+        Playlist.parse(get_testfile("playlist-baddate.xspf"))
 
 
 def test_playlist_badversion():
     with pytest.raises(ValueError):
-        Playlist.parse(get_testfile(
-            "playlist-badversion.xspf"))
+        Playlist.parse(get_testfile("playlist-badversion.xspf"))
 
 
 def test_playlist_broken_relative_path():
@@ -56,9 +54,7 @@ def test_playlist_extension_application_missing():
 
 def test_playlist_link_rel_missing():
     with pytest.raises(TypeError):
-        Playlist.parse(get_testfile(
-            "playlist-link-rel-missing.xspf"
-        ))
+        Playlist.parse(get_testfile("playlist-link-rel-missing.xspf"))
 
 
 def test_also_playlist_creation_without_link_rel():
@@ -68,37 +64,27 @@ def test_also_playlist_creation_without_link_rel():
 
 def test_playlist_markup_annotation():
     with pytest.raises(ValueError):
-        Playlist.parse(get_testfile(
-            "playlist-markup-annotation.xspf"
-        ))
+        Playlist.parse(get_testfile("playlist-markup-annotation.xspf"))
 
 
 def test_playlist_markup_creator():
     with pytest.raises(ValueError):
-        Playlist.parse(get_testfile(
-            "playlist-markup-creator.xspf"
-        ))
+        Playlist.parse(get_testfile("playlist-markup-creator.xspf"))
 
 
 def test_playlist_markup_meta():
     with pytest.raises(ValueError):
-        Playlist.parse(get_testfile(
-            "playlist-markup-meta.xspf"
-        ))
+        Playlist.parse(get_testfile("playlist-markup-meta.xspf"))
 
 
 def test_playlist_markup_title():
     with pytest.raises(ValueError):
-        Playlist.parse(get_testfile(
-            "playlist-markup-title.xspf"
-        ))
+        Playlist.parse(get_testfile("playlist-markup-title.xspf"))
 
 
 def test_playlist_meta_rel_missing():
     with pytest.raises(TypeError):
-        Playlist.parse(get_testfile(
-            "playlist-meta-rel-missing.xspf"
-        ))
+        Playlist.parse(get_testfile("playlist-meta-rel-missing.xspf"))
 
 
 def test_also_playlist_creation_without_meta_rel():
@@ -108,9 +94,7 @@ def test_also_playlist_creation_without_meta_rel():
 
 def test_playlist_missing_tracklist():
     with pytest.raises(TypeError):
-        Playlist.parse(get_testfile(
-            "playlist-missingtracklist.xspf"
-        ))
+        Playlist.parse(get_testfile("playlist-missingtracklist.xspf"))
 
 
 def test_also_playlist_create_empty_tracklist_element():
@@ -119,9 +103,7 @@ def test_also_playlist_create_empty_tracklist_element():
 
 def test_playlist_missing_version():
     with pytest.raises(TypeError):
-        Playlist.parse(get_testfile(
-            "playlist-missingversion.xspf"
-        ))
+        Playlist.parse(get_testfile("playlist-missingversion.xspf"))
 
 
 def test_also_playlist_create_version_attribute():
@@ -130,5 +112,30 @@ def test_also_playlist_create_version_attribute():
 
 def test_playlist_namespase_missing():
     with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-namespace-missing.xspf"))
+
+
+def test_playlist_namespace_nested_broken():
+    Playlist.parse(get_testfile("playlist-namespace-nested-broken.xspf"))
+    raise NotImplementedError
+
+
+def test_playlist_namespace_wrong_string():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-namespace-wrong-string.xspf"))
+
+
+def test_playlist_nonleaf_content_attribution():
+    with pytest.raises(TypeError):
         Playlist.parse(get_testfile(
-            "playlist-namespace-missing.xspf"))
+            "playlist-nonleaf-content-attribution.xspf"))
+
+
+def test_playlist_nonleaf_content_playlist():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-nonleaf-content-playlist.xspf"))
+
+
+def test_playlist_nonleaf_content_tracklist():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-nonleaf-content-trackList.xspf"))

@@ -1,13 +1,14 @@
 """Module helps to work with xspf playlists."""
 
 import xml.etree.ElementTree as ET
-from typing import Iterable, Optional, Union, Dict
+from typing import Iterable, Optional, Union, Dict, Tuple
 from datetime import datetime, timezone
 from collections import UserList, namedtuple
 import urllib.parse as urlparse
 from dataclasses import dataclass
 
-__all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI"]
+__all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI",
+           "Attribution"]
 
 URI = str
 NS = {'xspf': "http://xspf.org/ns/0/"}
@@ -90,6 +91,29 @@ class Meta:
 
     rel: URI
     content: str = ''
+
+
+class Attribution:
+    """Object representation of `attribution` element.
+
+    Can contain `location` attribute or `identifier` atribute or both.
+    """
+
+    def __init__(self, location: Optional[URI] = None,
+                 identifier: Optional[URI] = None):
+        self.location = location
+        self.identifier = identifier
+
+    def xml_elements(self):
+        """Create generator of xml representation."""
+        if self.location is not None:
+            el = ET.Element('location')
+            el.text = str(urlparse.quote(self.location, safe='/:'))
+            yield el
+        if self.identifier is not None:
+            el = ET.Element('identifier')
+            el.text = str(self.identifier)
+            yield el
 
 
 class Track():
@@ -272,7 +296,7 @@ class Playlist(UserList):
                  identifier: Optional[URI] = None,
                  image: Optional[URI] = None,
                  license: Optional[URI] = None,
-                 attribution: Iterable['Playlist'] = [],
+                 attribution: Iterable[Union['Playlist', Attribution]] = [],
                  link: Iterable[Link] = [],
                  meta: Iterable[Meta] = [],
                  extension: Iterable[Extension] = [],
@@ -289,7 +313,8 @@ class Playlist(UserList):
         :param identifier: Canonical URI for the playlist.
         :param image: URI of image to display in the absence of track image.
         :param license: URI of resource that describes the licence of playlist.
-        :param attribution: List of attributed playlists.
+        :param attribution: List of attributed playlists or `Attribution`
+        entities.
         :param link: The link elements allows playlist extended without the
         use of XML namespace. List of entities of `xspf.Link`.
         :param meta: Metadata fields of playlist.
@@ -445,10 +470,25 @@ class Playlist(UserList):
         date = root.find("xspf:date", NS)
         if date is not None:
             playlist.date = datetime.fromisoformat(date.text.strip())
-        attribution = root.find("xspf:date", NS)
+        attribution = root.find("xspf:attribution", NS)
         if attribution is not None:
-            # TODO: invent way to parse attribution
-            pass
+            for atr in attribution:
+                print(atr.tag)
+                if atr.tag == ''.join(['{', NS['xspf'], '}location']):
+                    playlist.attribution.append(
+                        Attribution(
+                            location=urlparse.unquote(atr.text.strip())
+                        )
+                    )
+                elif atr.tag == ''.join(['{', NS['xspf'], '}identifier']):
+                    playlist.attribution.append(
+                        Attribution(identifier=atr.text)
+                    )
+                else:
+                    raise TypeError("Forbidden element in attribution.\n"
+                                    "Only `location` and `identifier` is "
+                                    "allowed.\n"
+                                    f"You give {ET.tostring(atr)}.")
         for link in root.findall("xspf:link", NS):
             rel = link.get('rel')
             if rel is None:
@@ -470,3 +510,6 @@ class Playlist(UserList):
             playlist.append(Track._parse_xml(track))
 
         return playlist
+
+    def _to_attribution(self) -> Attribution:
+        return Attribution(location=self.location, identifier=self.identifier)

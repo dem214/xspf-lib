@@ -52,7 +52,9 @@ def test_playlist_extensive():
     assert pl.date == datetime(2005, 1, 8, 17, 10, 47,
                                tzinfo=timezone(timedelta(hours=-5)))
     assert pl.license == "http://creativecommons.org/licenses/by/1.0/"
-    # TODO: check attribution
+    assert len(pl.attribution) == 2
+    assert pl.attribution[0].identifier == "http://bar.com/secondderived.xspf"
+    assert pl.attribution[1].location == "http://foo.com/original.xspf"
     assert pl.link[0].rel == "http://foaf.example.org/namespace/version1"
     assert pl.link[0].content == \
         "http://socialnetwork.example.org/foaf/mary.rdfs"

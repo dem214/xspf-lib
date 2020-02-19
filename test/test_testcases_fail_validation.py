@@ -41,10 +41,10 @@ def test_playlist_broken_relative_path():
 
 
 def test_playlist_element_forbidden_attributution():
-    pl = Playlist.parse(get_testfile(
-        "playlist-element-forbidden-attribution.xspf"
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile(
+            "playlist-element-forbidden-attribution.xspf"
     ))
-    raise NotImplementedError()
 
 
 def test_playlist_extension_application_missing():

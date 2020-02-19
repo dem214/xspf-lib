@@ -1,5 +1,6 @@
-from xspf_lib import Track, Playlist, Extension, Link, Meta
+from xspf_lib import Track, Playlist, Extension, Link, Meta, Attribution
 from xml.etree.ElementTree import Element
+import xml.etree.ElementTree as ET
 from datetime import datetime
 
 
@@ -81,3 +82,18 @@ def test_playlist_init():
                '</trackList>'\
                '</playlist>'
     assert pl.xml_string() == response
+
+
+def test_aattribution_xml_generator():
+    atr = Attribution(location="file://ty", identifier="file://kylo")
+    assert ['<location>file://ty</location>',
+            '<identifier>file://kylo</identifier>'] == \
+        [ET.tostring(el).decode() for el in atr.xml_elements()]
+    atr_l = Attribution(location="file://ty")
+    assert ['<location>file://ty</location>'] ==\
+        [ET.tostring(el).decode() for el in atr_l.xml_elements()]
+    atr_id = Attribution(identifier="file://id")
+    assert ['<identifier>file://id</identifier>'] ==\
+        [ET.tostring(el).decode() for el in atr_id.xml_elements()]
+    atr_null = Attribution()
+    assert len(list(atr_null.xml_elements())) == 0

@@ -139,3 +139,60 @@ def test_playlist_nonleaf_content_playlist():
 def test_playlist_nonleaf_content_tracklist():
     with pytest.raises(TypeError):
         Playlist.parse(get_testfile("playlist-nonleaf-content-trackList.xspf"))
+
+
+def test_playlist_noturi_attribution_identifier():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile(
+            "playlist-noturi-attribution-identifier.xspf"))
+
+
+def test_playlist_noturi_attribution_location():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile(
+            "playlist-noturi-attribution-location.xspf"))
+
+
+def test_playlist_noturi_extension():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-extension.xspf"))
+
+
+def test_playlist_noturi_identifier():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-identifier.xspf"))
+
+
+def test_playlist_noturi_image():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-image.xspf"))
+
+
+def test_playlist_noturi_info():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-info.xspf"))
+
+
+def test_playlist_noturi_license():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-license.xspf"))
+
+
+def test_playlist_noturi_link_content():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-link-content.xspf"))
+
+
+def test_playlist_noturi_link_rel():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-link-rel.xspf"))
+
+
+def test_playlist_noturi_location():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-location.xspf"))
+
+
+def test_playlist_noturi_meta():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-noturi-meta.xspf"))

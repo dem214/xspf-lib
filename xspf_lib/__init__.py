@@ -1,9 +1,9 @@
 """Module helps to work with xspf playlists."""
 
 import xml.etree.ElementTree as ET
-from typing import Iterable, Optional, Union, Dict, Tuple
+from typing import Iterable, Optional, Union, Dict
 from datetime import datetime, timezone
-from collections import UserList, namedtuple
+from collections import UserList
 import urllib.parse as urlparse
 from dataclasses import dataclass
 
@@ -109,6 +109,11 @@ class Link:
                             f"{ET.tostring(element)}")
         return cls(rel=rel, content=urify(element.text))
 
+    def _to_element(self) -> ET.Element:
+        el = ET.Element('link', {'rel': str(self.rel)})
+        el.text = str(self.content)
+        return el
+
 
 @dataclass()
 class Meta:
@@ -132,6 +137,11 @@ class Meta:
                             f"{ET.tostring(element)}")
         return cls(rel=rel, content=element.text)
 
+    def _to_element(self) -> ET.Element:
+        el = ET.Element('meta', {'rel': str(self.rel)})
+        el.text = str(self.content)
+        return el
+
 
 class Attribution:
     """Object representation of `attribution` element.
@@ -141,10 +151,26 @@ class Attribution:
 
     def __init__(self, location: Optional[URI] = None,
                  identifier: Optional[URI] = None):
+        """Create new attribution.
+
+        Generate representation of `Attribution` element of
+        `xpsf_lib.Playlist`.
+
+        Parameters.
+        :param location: -- data for `location` attribution.
+        :param identifier: -- data for `identifier` attribution.
+
+        It's obvious to add something to `location` to create location
+        attribution. Or, you can add only `identifier` to create identifier
+        attribute. You also can add both `attribution` and `location` field to
+        create 2 attribution elements. Not putting both attributes is little
+        odd.
+        """
         self.location = location
         self.identifier = identifier
 
-    def __repr__(self):
+    def __repr__(self) -> repr:
+        """Representation of `Attribute` object and that fields."""
         resp = "<Attribution {"
         if self.location is not None:
             resp += f"location={self.location}"
@@ -167,7 +193,7 @@ class Attribution:
             yield el
 
     @classmethod
-    def _from_element(cls, element):
+    def _from_element(cls, element) -> 'Attribution':
         if element.tag == ''.join(['{', NS['xspf'], '}location']):
             return Attribution(
                 location=urlparse.unquote(urify(element.text.strip())))
@@ -256,7 +282,7 @@ class Track():
                  'info', 'image', 'album', 'trackNum', 'duration', 'link',
                  'meta', 'extension')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return representation `repr(self)`."""
         repr = "<Track"
         if self.title is not None:
@@ -296,16 +322,12 @@ class Track():
             ET.SubElement(track, 'trackNum').text = str(self.trackNum)
         if self.duration is not None:
             ET.SubElement(track, 'duration').text = str(self.duration)
-        for link in self.link:
-            ET.SubElement(track, 'link', {'rel': str(link.rel)})\
-                .text = str(link.content)
-        for meta in self.meta:
-            ET.SubElement(track, 'meta', {'rel': str(meta.rel)})\
-                .text = str(meta.content)
+        track.extend(link._to_element() for link in self.link)
+        track.extend(meta._to_element() for meta in self.meta)
         track.extend([extension._to_element() for extension in self.extension])
         return track
 
-    def xml_string(self, *args, **kwargs):
+    def xml_string(self) -> str:
         """Return XML representation of track."""
         return ET.tostring(self.xml_element, encoding="UTF-8").decode()
 
@@ -342,12 +364,13 @@ class Track():
         duration = element.find("xspf:duration", NS)
         if duration is not None:
             track.duration = int(duration.text)
-        for link in element.findall("xspf:link", NS):
-            track.link.append(Link(rel=link.get("rel"), content=link.text))
-        for meta in element.findall("xspf:meta", NS):
-            track.meta.append(Meta(rel=meta.get("rel"), content=meta.text))
-        for extension in element.findall("xspf:extension", NS):
-            track.extension.append(Extension._from_element(extension))
+        track.link.extend(Link._from_element(link) for link in
+                          element.findall("xspf:link", NS))
+        track.meta.extend(Meta._from_element(meta) for meta in
+                          element.findall("xspf:meta", NS))
+        track.extension.extend(
+            Extension._from_element(extension) for extension in
+            element.findall('xspf:extension', NS))
         return track
 
 
@@ -443,34 +466,29 @@ class Playlist(UserList):
         if len(self.attribution) > 0:
             attribution = ET.SubElement(playlist, 'attribution')
             for attr in self.attribution[0:9]:
-                ET.SubElement(attribution, 'location').text = attr.location
-                ET.SubElement(attribution, 'identifier').text = attr.identifier
-        for link in self.link:
-            ET.SubElement(playlist, 'link', {'rel': str(link.rel)})\
-                .text = str(link.content)
-        for meta in self.meta:
-            ET.SubElement(playlist, 'meta', {'rel': str(meta.rel)})\
-                .text = str(meta.content)
+                if attr.location is not None:
+                    ET.SubElement(attribution, 'location').text = attr.location
+                if attr.identifier is not None:
+                    ET.SubElement(attribution, 'identifier').text = \
+                        attr.identifier
+        playlist.extend(link._to_element() for link in self.link)
+        playlist.extend(meta._to_element() for meta in self.meta)
         playlist.extend(
             [extension._to_element() for extension in self.extension])
         ET.SubElement(playlist, 'trackList').extend(
             (track.xml_element for track in self.trackList))
         return playlist
 
-    def dump(self) -> None:
-        """Return XML formated entity of track."""
-        return ET.dump(self.xml_element)
-
     @property
     def xml_eltree(self) -> ET.ElementTree:
         """Return `xml.etree.ElementTree.ElementTree` object of playlist."""
         return ET.ElementTree(element=self.xml_element)
 
-    def xml_string(self):
+    def xml_string(self) -> str:
         """Return XML representation of playlist."""
         return ET.tostring(self.xml_element, encoding="UTF-8").decode()
 
-    def write(self, file_or_filename, encoding="utf-8"):
+    def write(self, file_or_filename, encoding="utf-8") -> None:
         """Write playlist into file."""
         self.xml_eltree.write(file_or_filename,
                               encoding="UTF-8",
@@ -480,12 +498,12 @@ class Playlist(UserList):
                               xml_declaration=True)
 
     @classmethod
-    def parse(cls, filename):
+    def parse(cls, filename) -> 'Playlist':
         """Parse XSPF file into `xspf_lib.Playlist` entity."""
         return cls._parse_xml(ET.parse(filename).getroot())
 
     @staticmethod
-    def _parse_xml(root):
+    def _parse_xml(root) -> 'Playlist':
         root_attribs = root.keys()
         # Version attribute check.
         if 'version' not in root_attribs:

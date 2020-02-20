@@ -75,7 +75,7 @@ class Extension():
     @staticmethod
     def _from_element(element: ET.Element) -> 'Extension':
         """`xml.etree.ElementTree.Element` to Extension coversion."""
-        application = element.get("application")
+        application = urify(element.get("application"))
         if application is None:
             raise TypeError(
                 "Extension parsing missing attribute `application`")
@@ -508,16 +508,21 @@ class Playlist(UserList):
             if param is not None:
                 playlist.__setattr__(attr, param.text)
 
+        def get_simple_uri_element_and_set_attr(root, playlist, attr):
+            param = root.find("xspf:" + attr, NS)
+            if param is not None:
+                playlist.__setattr__(attr, urify(param.text))
+
         get_simple_element_and_set_attr(root, playlist, 'title')
         get_simple_element_and_set_attr(root, playlist, 'creator')
         get_simple_element_and_set_attr(root, playlist, 'annotation')
-        get_simple_element_and_set_attr(root, playlist, 'info')
+        get_simple_uri_element_and_set_attr(root, playlist, 'info')
         location = root.find("xspf:location", NS)
         if location is not None:
-            playlist.location = urlparse.unquote(location.text.strip())
-        get_simple_element_and_set_attr(root, playlist, 'identifier')
-        get_simple_element_and_set_attr(root, playlist, 'image')
-        get_simple_element_and_set_attr(root, playlist, 'license')
+            playlist.location = urlparse.unquote(urify(location.text.strip()))
+        get_simple_uri_element_and_set_attr(root, playlist, 'identifier')
+        get_simple_uri_element_and_set_attr(root, playlist, 'image')
+        get_simple_uri_element_and_set_attr(root, playlist, 'license')
         date = root.find("xspf:date", NS)
         if date is not None:
             playlist.date = datetime.fromisoformat(date.text.strip())
@@ -532,27 +537,27 @@ class Playlist(UserList):
                 if atr.tag == ''.join(['{', NS['xspf'], '}location']):
                     playlist.attribution.append(
                         Attribution(
-                            location=urlparse.unquote(atr.text.strip())
+                            location=urlparse.unquote(urify(atr.text.strip()))
                         )
                     )
                 elif atr.tag == ''.join(['{', NS['xspf'], '}identifier']):
                     playlist.attribution.append(
-                        Attribution(identifier=atr.text)
+                        Attribution(identifier=urify(atr.text))
                     )
                 else:
                     # No `location` and `identifier` attribution is not allowed
                     raise TypeError("Forbidden element in attribution.\n"
                                     "Only `location` and `identifier` is "
                                     "allowed.\n"
-                                    f"You give {ET.tostring(atr)}.")
+                                    f"Got {ET.tostring(atr)}.")
         for link in root.findall("xspf:link", NS):
-            rel = link.get('rel')
+            rel = urify(link.get('rel'))
             if rel is None:
                 raise TypeError("`rel` attribute of link is missing\n"
                                 f"{ET.tostring(link)}")
-            playlist.link.append(Link(rel=rel, content=link.text))
+            playlist.link.append(Link(rel=rel, content=urify(link.text)))
         for meta in root.findall("xspf:meta", NS):
-            rel = meta.get('rel')
+            rel = urify(meta.get('rel'))
             if rel is None:
                 raise TypeError("`rel` attribute of meta is missing\n"
                                 f"{ET.tostring(meta)}")

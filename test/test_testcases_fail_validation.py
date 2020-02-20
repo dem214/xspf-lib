@@ -196,3 +196,63 @@ def test_playlist_noturi_location():
 def test_playlist_noturi_meta():
     with pytest.raises(ValueError):
         Playlist.parse(get_testfile("playlist-noturi-meta.xspf"))
+
+
+def test_playlist_root_name():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-root-name.xspf"))
+
+
+def test_playlist_toomany_annotation():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-annotation.xspf"))
+
+
+def test_playlist_toomany_attribution():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-attribution.xspf"))
+
+
+def test_playlist_toomany_creator():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-creator.xspf"))
+
+
+def test_playlist_toomany_date():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-date.xspf"))
+
+
+def test_playlist_toomany_identifier():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-identifier.xspf"))
+
+
+def test_playlist_toomany_image():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-image.xspf"))
+
+
+def test_playlist_toomany_info():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-info.xspf"))
+
+
+def test_playlist_toomany_license():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-license.xspf"))
+
+
+def test_playlist_toomany_location():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-location.xspf"))
+
+
+def test_playlist_toomany_title():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-title.xspf"))
+
+
+def test_playlist_toomany_tracklist():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("playlist-toomany-tracklist.xspf"))

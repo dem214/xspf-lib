@@ -504,6 +504,20 @@ class Playlist(UserList):
 
     @staticmethod
     def _parse_xml(root) -> 'Playlist':
+        # Check for namespace existing.
+        if not root.tag[0] == '{':
+            raise TypeError("Playlist namespace attribute is missing.\n"
+                            f"{ET.tostring(root)}")
+        # Check for right namespace string.
+        if not root.tag.startswith(''.join(['{', NS["xspf"], '}'])):
+            raise ValueError("Namespace is wrong string.\n"
+                             f"| Expected `{NS['xspf']}`.\n"
+                             f"| Got `{root.tag.split('}')[0].lstrip('{')}`.")
+        # Root name check.
+        if root.tag != ''.join(['{', NS['xspf'], '}playlist']):
+            raise ValueError("Root tag name is not correct.\n"
+                             "| Expected: `playlist`.\n"
+                             f"| Got: `{root.tag.split('}')[1]}`")
         root_attribs = root.keys()
         # Version attribute check.
         if 'version' not in root_attribs:
@@ -535,47 +549,60 @@ class Playlist(UserList):
                 "The 'version' attribute must be 1.\n"
                 f"Your playlist version setted to {version}.\n"
                 "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
-        # Check for namespace existing.
-        if not root.tag[0] == '{':
-            raise TypeError("Playlist namespace attribute is missing.\n"
-                            f"{ET.tostring(root)}")
-        # Check for right namespace string.
-        if not root.tag.startswith(''.join(['{', NS["xspf"], '}'])):
-            raise ValueError("Namespace is wrong string.\n"
-                             f"Must be `{NS['xspf']}`.\n"
-                             f"Got `{root.tag.split('}')[0].lstrip('{')}`.")
         # Playlist nonleaf content checking.
         if root.text is not None and not root.text.isspace():
             raise TypeError("Playlist nonleaf content is not allowed.\n"
-                            f"Got {root.text}")
+                            f"| Got `{root.text}`.")
 
         playlist = Playlist()
 
         def get_simple_element_and_set_attr(root, playlist, attr):
-            param = root.find("xspf:" + attr, NS)
-            if param is not None:
-                playlist.__setattr__(attr, param.text)
+            params = root.findall("xspf:" + attr, NS)
+            # non-multiple elements of param check
+            if len(params) > 1:
+                raise TypeError(f"Got too many `{attr}` elements in playlist."
+                                f"{ET.tostring(root)}")
+            if len(params) == 1:
+                playlist.__setattr__(attr, params[0].text)
 
         def get_simple_uri_element_and_set_attr(root, playlist, attr):
-            param = root.find("xspf:" + attr, NS)
-            if param is not None:
-                playlist.__setattr__(attr, urify(param.text))
+            # non-multiple elements of param check
+            params = root.findall("xspf:" + attr, NS)
+            if len(params) > 1:
+                raise TypeError(f"Got too many `{attr}` elements in playlist."
+                                f"{ET.tostring(root)}")
+            if len(params) == 1:
+                playlist.__setattr__(attr, urify(params[0].text))
 
         get_simple_element_and_set_attr(root, playlist, 'title')
         get_simple_element_and_set_attr(root, playlist, 'creator')
         get_simple_element_and_set_attr(root, playlist, 'annotation')
         get_simple_uri_element_and_set_attr(root, playlist, 'info')
-        location = root.find("xspf:location", NS)
-        if location is not None:
+        # non-multiple elements of location check
+        locations = root.findall("xspf:location", NS)
+        if len(locations) > 1:
+            raise TypeError(f"Got too many `location` elements in playlist."
+                            f"{ET.tostring(root)}")
+        if len(locations) == 1:
+            location = locations[0]
             playlist.location = urlparse.unquote(urify(location.text.strip()))
         get_simple_uri_element_and_set_attr(root, playlist, 'identifier')
         get_simple_uri_element_and_set_attr(root, playlist, 'image')
         get_simple_uri_element_and_set_attr(root, playlist, 'license')
-        date = root.find("xspf:date", NS)
-        if date is not None:
-            playlist.date = datetime.fromisoformat(date.text.strip())
-        attribution = root.find("xspf:attribution", NS)
-        if attribution is not None:
+        # non-multiple elements of date check
+        dates = root.findall("xspf:date", NS)
+        if len(dates) > 1:
+            raise TypeError(f"Got too many `date` elements in playlist."
+                            f"{ET.tostring(root)}")
+        if len(dates) == 1:
+            playlist.date = datetime.fromisoformat(dates[0].text.strip())
+        # non-multiple elements of attribution check
+        attributions = root.findall("xspf:attribution", NS)
+        if len(attributions) > 1:
+            raise TypeError(f"Got too many `attribution` elements in playlist."
+                            f"{ET.tostring(root)}")
+        if len(attributions) == 1:
+            attribution = attributions[0]
             # Attribution nonleaf content checking.
             if attribution.text is not None and not attribution.text.isspace():
                 raise TypeError("Attribution nonleaf content not allowed.\n"
@@ -589,14 +616,21 @@ class Playlist(UserList):
         playlist.extension.extend(
             Extension._from_element(extension) for extension in
             root.findall('xspf:extension', NS))
-        trackList = root.find("xspf:trackList", NS)
-        if trackList is None:
+        # non-multiple elements of trackList check
+        trackLists = root.findall("xspf:trackList", NS)
+        if len(trackLists) == 1:
+            trackList = trackLists[0]
+            # Non leaf content check.
+            if trackList.text is not None and not trackList.text.isspace():
+                raise TypeError("trackList nonleaf content not allowed.\n"
+                                f"| Got: `{trackList.text}`.")
+            playlist.trackList.extend(Track._parse_xml(track)
+                                      for track in trackList)
+        elif len(trackLists) > 1:
+            raise TypeError(f"Got too many `trackList` elements in playlist."
+                            f"{ET.tostring(root)}")
+        elif len(locations) == 0:
             raise TypeError("trackList element not founded.")
-        if trackList.text is not None and not trackList.text.isspace():
-            raise TypeError("trackList nonleaf content not allowed.\n"
-                            f"Got {trackList.text}")
-        playlist.trackList.extend(Track._parse_xml(track)
-                                  for track in trackList)
 
         return playlist
 

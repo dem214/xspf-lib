@@ -1,4 +1,4 @@
-from xspf_lib import Playlist, Track, Extension, Link, Meta
+from xspf_lib import Playlist, Link, Meta
 import os
 import pytest
 
@@ -11,8 +11,7 @@ def get_testfile(path):
 
 
 def test_playlist_attribute_forbidden_annotation():
-    print(os.getcwd())
-    pl = Playlist.parse(get_testfile(
+    Playlist.parse(get_testfile(
         'playlist-attribute-forbidden-annotation.xspf'))
     raise NotImplementedError
 
@@ -41,8 +40,7 @@ def test_playlist_broken_relative_path():
 def test_playlist_element_forbidden_attributution():
     with pytest.raises(TypeError):
         Playlist.parse(get_testfile(
-            "playlist-element-forbidden-attribution.xspf"
-    ))
+            "playlist-element-forbidden-attribution.xspf"))
 
 
 def test_playlist_extension_application_missing():

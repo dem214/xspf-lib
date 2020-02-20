@@ -18,7 +18,7 @@ def test_track_init():
                meta=[Meta("meta_type1", "metadata1"),
                      Meta("meta_type1", "metadata2")],
                extension=[Extension("appl",
-                          content=[Element('a', {'attr': "1"})])])
+                                    content=[Element('a', {'attr': "1"})])])
     resp = '<track>'\
         '<location>here.mp3</location>'\
         '<identifier>id</identifier>'\
@@ -38,6 +38,7 @@ def test_track_init():
         '</track>'
     assert tr.xml_string() == resp
 
+
 def test_playlist_init():
     pl = Playlist(title="that_playlist",
                   creator="myself",
@@ -47,8 +48,9 @@ def test_playlist_init():
                   identifier="this.playlist",
                   image="file:///default_cover.png",
                   license="CC",
-                  attribution=[Playlist(identifier="previous.playlist",
-                                        location="file:///last.playlist.xspf")],
+                  attribution=[
+                    Playlist(identifier="previous.playlist",
+                             location="file:///last.playlist.xspf")],
                   link=[Link("link_type", "link_uri")],
                   meta=[Meta("meta_type1", "metadata1"),
                         Meta("meta_type1", "metadata2")],

@@ -43,6 +43,8 @@ def quote(value: str) -> str:
 class Extension():
     """Class for XML extensions of XSPF playlists and tracks."""
 
+    __slots__ = ['application', 'extra_attrib', 'content']
+
     def __init__(self, application: URI,
                  extra_attrib: Dict[str, str] = {},
                  content: Iterable[ET.Element] = []) -> None:
@@ -149,6 +151,8 @@ class Attribution:
     Can contain `location` attribute or `identifier` atribute or both.
     """
 
+    __slots__ = ['location', 'identifier']
+
     def __init__(self, location: Optional[URI] = None,
                  identifier: Optional[URI] = None):
         """Create new attribution.
@@ -208,6 +212,8 @@ class Attribution:
 
 
 class Track():
+    """Track info class."""
+
     def __init__(self,
                  location: Union[Iterable[URI], URI, None] = None,
                  identifier: Union[Iterable[URI], URI, None] = None,
@@ -375,6 +381,8 @@ class Track():
 
 
 class Playlist(UserList):
+    """Playlist info class."""
+
     def __init__(self,
                  title: Optional[str] = None,
                  creator: Optional[str] = None,
@@ -502,59 +510,12 @@ class Playlist(UserList):
         """Parse XSPF file into `xspf_lib.Playlist` entity."""
         return cls._parse_xml(ET.parse(filename).getroot())
 
-    @staticmethod
-    def _parse_xml(root) -> 'Playlist':
-        # Check for namespace existing.
-        if not root.tag[0] == '{':
-            raise TypeError("Playlist namespace attribute is missing.\n"
-                            f"{ET.tostring(root)}")
-        # Check for right namespace string.
-        if not root.tag.startswith(''.join(['{', NS["xspf"], '}'])):
-            raise ValueError("Namespace is wrong string.\n"
-                             f"| Expected `{NS['xspf']}`.\n"
-                             f"| Got `{root.tag.split('}')[0].lstrip('{')}`.")
-        # Root name check.
-        if root.tag != ''.join(['{', NS['xspf'], '}playlist']):
-            raise ValueError("Root tag name is not correct.\n"
-                             "| Expected: `playlist`.\n"
-                             f"| Got: `{root.tag.split('}')[1]}`")
-        root_attribs = root.keys()
-        # Version attribute check.
-        if 'version' not in root_attribs:
-            raise TypeError("version attribute of playlist is missing.")
-        # Forbidden attribute check -- all except `version` and `base`.
-        if not (root_attribs == ['version'] or root_attribs == [
-                'version', '{http://www.w3.org/XML/1998/namespace}base']):
-            forbidden_attributes = list(root_attribs)
-            try:
-                forbidden_attributes.remove('version')
-            except ValueError:
-                pass
-            try:
-                forbidden_attributes.remove(
-                    '{http://www.w3.org/XML/1998/namespace}base')
-            except ValueError:
-                pass
-            raise TypeError("<playlist> element contains forbidden elements.\n"
-                            f"{forbidden_attributes}")
-        # Value of version checking.
-        version = int(root.get("version"))
-        # 0 version not implemented
-        if version == 0:
-            raise ValueError("XSPF version 0 not maintained, "
-                             "switch to version 1.")
-        # Another version than 1 not accepted.
-        elif version != 1:
-            raise ValueError(
-                "The 'version' attribute must be 1.\n"
-                f"Your playlist version setted to {version}.\n"
-                "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
-        # Playlist nonleaf content checking.
-        if root.text is not None and not root.text.isspace():
-            raise TypeError("Playlist nonleaf content is not allowed.\n"
-                            f"| Got `{root.text}`.")
+    @classmethod
+    def _parse_xml(cls, root) -> 'Playlist':
 
-        playlist = Playlist()
+        cls.__playlist_validation_xml_root_check(root)
+
+        playlist = cls()
 
         def get_simple_element_and_set_attr(root, playlist, attr):
             params = root.findall("xspf:" + attr, NS)
@@ -636,3 +597,55 @@ class Playlist(UserList):
 
     def _to_attribution(self) -> Attribution:
         return Attribution(location=self.location, identifier=self.identifier)
+
+    @staticmethod
+    def __playlist_validation_xml_root_check(root):
+        # Check for namespace existing.
+        if not root.tag[0] == '{':
+            raise TypeError("Playlist namespace attribute is missing.\n"
+                            f"{ET.tostring(root)}")
+        # Check for right namespace string.
+        if not root.tag.startswith(''.join(['{', NS["xspf"], '}'])):
+            raise ValueError("Namespace is wrong string.\n"
+                             f"| Expected `{NS['xspf']}`.\n"
+                             f"| Got `{root.tag.split('}')[0].lstrip('{')}`.")
+        # Root name check.
+        if root.tag != ''.join(['{', NS['xspf'], '}playlist']):
+            raise ValueError("Root tag name is not correct.\n"
+                             "| Expected: `playlist`.\n"
+                             f"| Got: `{root.tag.split('}')[1]}`")
+        root_attribs = root.keys()
+        # Version attribute check.
+        if 'version' not in root_attribs:
+            raise TypeError("version attribute of playlist is missing.")
+        # Forbidden attribute check -- all except `version` and `base`.
+        if not (root_attribs == ['version'] or root_attribs == [
+                'version', '{http://www.w3.org/XML/1998/namespace}base']):
+            forbidden_attributes = list(root_attribs)
+            try:
+                forbidden_attributes.remove('version')
+            except ValueError:
+                pass
+            try:
+                forbidden_attributes.remove(
+                    '{http://www.w3.org/XML/1998/namespace}base')
+            except ValueError:
+                pass
+            raise TypeError("<playlist> element contains forbidden elements.\n"
+                            f"{forbidden_attributes}")
+        # Value of version checking.
+        version = int(root.get("version"))
+        # 0 version not implemented
+        if version == 0:
+            raise ValueError("XSPF version 0 not maintained, "
+                             "switch to version 1.")
+        # Another version than 1 not accepted.
+        elif version != 1:
+            raise ValueError(
+                "The 'version' attribute must be 1.\n"
+                f"Your playlist version setted to {version}.\n"
+                "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
+        # Playlist nonleaf content checking.
+        if root.text is not None and not root.text.isspace():
+            raise TypeError("Playlist nonleaf content is not allowed.\n"
+                            f"| Got `{root.text}`.")

@@ -101,6 +101,14 @@ class Link:
     rel: URI
     content: URI = ''
 
+    @classmethod
+    def _from_element(cls, element):
+        rel = urify(element.get('rel'))
+        if rel is None:
+            raise TypeError("`rel` attribute of link is missing\n"
+                            f"{ET.tostring(element)}")
+        return cls(rel=rel, content=urify(element.text))
+
 
 @dataclass()
 class Meta:
@@ -115,6 +123,14 @@ class Meta:
 
     rel: URI
     content: str = ''
+
+    @classmethod
+    def _from_element(cls, element):
+        rel = urify(element.get('rel'))
+        if rel is None:
+            raise TypeError("`rel` attribute of meta is missing\n"
+                            f"{ET.tostring(element)}")
+        return cls(rel=rel, content=element.text)
 
 
 class Attribution:
@@ -149,6 +165,20 @@ class Attribution:
             el = ET.Element('identifier')
             el.text = str(self.identifier)
             yield el
+
+    @classmethod
+    def _from_element(cls, element):
+        if element.tag == ''.join(['{', NS['xspf'], '}location']):
+            return Attribution(
+                location=urlparse.unquote(urify(element.text.strip())))
+        elif element.tag == ''.join(['{', NS['xspf'], '}identifier']):
+            return Attribution(identifier=urify(element.text))
+        else:
+            # No `location` and `identifier` attribution is not allowed
+            raise TypeError("Forbidden element in attribution.\n"
+                            "Only `location` and `identifier` is "
+                            "allowed.\n"
+                            f"Got {ET.tostring(element)}.")
 
 
 class Track():
@@ -532,46 +562,23 @@ class Playlist(UserList):
             if attribution.text is not None and not attribution.text.isspace():
                 raise TypeError("Attribution nonleaf content not allowed.\n"
                                 f"Got {attribution.text}")
-            for atr in attribution:
-                print(atr.tag)
-                if atr.tag == ''.join(['{', NS['xspf'], '}location']):
-                    playlist.attribution.append(
-                        Attribution(
-                            location=urlparse.unquote(urify(atr.text.strip()))
-                        )
-                    )
-                elif atr.tag == ''.join(['{', NS['xspf'], '}identifier']):
-                    playlist.attribution.append(
-                        Attribution(identifier=urify(atr.text))
-                    )
-                else:
-                    # No `location` and `identifier` attribution is not allowed
-                    raise TypeError("Forbidden element in attribution.\n"
-                                    "Only `location` and `identifier` is "
-                                    "allowed.\n"
-                                    f"Got {ET.tostring(atr)}.")
-        for link in root.findall("xspf:link", NS):
-            rel = urify(link.get('rel'))
-            if rel is None:
-                raise TypeError("`rel` attribute of link is missing\n"
-                                f"{ET.tostring(link)}")
-            playlist.link.append(Link(rel=rel, content=urify(link.text)))
-        for meta in root.findall("xspf:meta", NS):
-            rel = urify(meta.get('rel'))
-            if rel is None:
-                raise TypeError("`rel` attribute of meta is missing\n"
-                                f"{ET.tostring(meta)}")
-            playlist.meta.append(Meta(rel=rel, content=meta.text))
-        for extension in root.findall("xspf:extension", NS):
-            playlist.extension.append(Extension._from_element(extension))
+            playlist.attribution.extend(Attribution()._from_element(attr)
+                                        for attr in attribution)
+        playlist.link.extend(Link._from_element(link) for link in
+                             root.findall("xspf:link", NS))
+        playlist.meta.extend(Meta._from_element(meta) for meta in
+                             root.findall("xspf:meta", NS))
+        playlist.extension.extend(
+            Extension._from_element(extension) for extension in
+            root.findall('xspf:extension', NS))
         trackList = root.find("xspf:trackList", NS)
         if trackList is None:
             raise TypeError("trackList element not founded.")
         if trackList.text is not None and not trackList.text.isspace():
             raise TypeError("trackList nonleaf content not allowed.\n"
                             f"Got {trackList.text}")
-        for track in trackList:
-            playlist.append(Track._parse_xml(track))
+        playlist.trackList.extend(Track._parse_xml(track)
+                                  for track in trackList)
 
         return playlist
 

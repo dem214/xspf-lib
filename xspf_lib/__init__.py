@@ -16,6 +16,30 @@ NS = {'xspf': "http://xspf.org/ns/0/"}
 ET.register_namespace('xspf', NS['xspf'])
 
 
+def urify(value: str) -> str:
+    # By RFC 3986
+    lowalpha = 'abcdefghijklmnopqrstuvwxyz'
+    upalpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alpha = lowalpha + upalpha
+    digit = '0123456789'
+    unreserved = alpha + digit + '-._~'
+    gen_delims = ':/?#[]@'
+    sub_delims = '!$&\'()*+,;='
+    reserved = gen_delims + sub_delims
+    quoted = '%'
+    uric = reserved + unreserved + quoted
+
+    if all(char in uric for char in value):
+        return value
+    else:
+        raise ValueError("Only valid URI is acceptable.\n"
+                         f"Got `{value}`")
+
+
+def quote(value: str) -> str:
+    return urlparse.quote(value, safe='/:')
+
+
 class Extension():
     """Class for XML extensions of XSPF playlists and tracks."""
 

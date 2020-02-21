@@ -13,6 +13,8 @@ __all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI",
 URI = str
 NS = {'xspf': "http://xspf.org/ns/0/"}
 
+ET.register_namespace('xspf', NS['xspf'])
+
 
 class _Uric_helper:
     __slots__ = {}
@@ -27,7 +29,6 @@ class _Uric_helper:
     reserved = gen_delims + sub_delims
     quoted = '%'
     uric = reserved + unreserved + quoted
-    ET.register_namespace('xspf', NS['xspf'])
 
     @staticmethod
     def urify(value):
@@ -138,6 +139,11 @@ class Meta:
 
     @classmethod
     def _from_element(cls, element):
+        # Check for markup.
+        if len(list(element)) > 0:
+            raise ValueError("Got nested elements in expected text. "
+                             "Probably, this is unexpected HTML insertion.\n"
+                             f"{ET.tostring(element)}")
         rel = urify(element.get('rel'))
         if rel is None:
             raise TypeError("`rel` attribute of meta is missing\n"
@@ -350,7 +356,7 @@ class Track():
         track = Track()
         locations = element.findall("xspf:location", NS)
         if len(locations) > 0:
-            track.location = [urlparse.unquote(location.text.strip())
+            track.location = [urlparse.unquote(urify(location.text.strip()))
                               for location in locations]
         identifiers = element.findall("xspf:identifier", NS)
         if len(identifiers) > 0:
@@ -524,9 +530,23 @@ class Playlist(UserList):
 
         def get_simple_element_and_set_attr(root, playlist, attr):
             params = root.findall("xspf:" + attr, NS)
-            # non-multiple elements of param check
             if len(params) == 1:
+                param = params[0]
+                # Check for inserted markup.
+                if len(list(param)) > 0:
+                    raise ValueError("Got nested elements in expected text. "
+                                     "Probably, this is unexpected HTML "
+                                     "insertion.\n"
+                                     f"{ET.tostring(param)}")
+                # Chech for forbidden attributes
+                if len(param.attrib) > 0 and \
+                        param.keys() != \
+                        ["{http://www.w3.org/XML/1998/namespace}base"]:
+                    raise TypeError("Element contains forbidden attribute "
+                                    f"{param.attrib}.\n"
+                                    f"{ET.tostring(param)}")
                 playlist.__setattr__(attr, params[0].text)
+            # non-multiple elements of param check
             elif len(params) > 1:
                 raise TypeError(f"Got too many `{attr}` elements in playlist."
                                 f"{ET.tostring(root)}")
@@ -535,7 +555,15 @@ class Playlist(UserList):
             # non-multiple elements of param check
             params = root.findall("xspf:" + attr, NS)
             if len(params) == 1:
-                playlist.__setattr__(attr, urify(params[0].text))
+                # Chech for forbidden attributes
+                param = params[0]
+                if len(param.attrib) > 0 and \
+                        param.keys() != \
+                        ["{http://www.w3.org/XML/1998/namespace}base"]:
+                    raise TypeError("Element contains forbidden attribute "
+                                    f"{param.attrib}.\n"
+                                    f"{ET.tostring(param)}")
+                playlist.__setattr__(attr, urify(param.text))
             elif len(params) > 1:
                 raise TypeError(f"Got too many `{attr}` elements in playlist."
                                 f"{ET.tostring(root)}")

@@ -11,9 +11,9 @@ def get_testfile(path):
 
 
 def test_playlist_attribute_forbidden_annotation():
-    Playlist.parse(get_testfile(
-        'playlist-attribute-forbidden-annotation.xspf'))
-    raise NotImplementedError
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile(
+            'playlist-attribute-forbidden-annotation.xspf'))
 
 
 def test_playlist_attribute_forbidden_playlist():
@@ -33,8 +33,8 @@ def test_playlist_badversion():
 
 
 def test_playlist_broken_relative_path():
-    Playlist.parse(get_testfile("playlist-broken-relative-paths.xspf"))
-    raise NotImplementedError("is it realy must to fail?")
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("playlist-broken-relative-paths.xspf"))
 
 
 def test_playlist_element_forbidden_attributution():
@@ -113,9 +113,7 @@ def test_playlist_namespase_missing():
         Playlist.parse(get_testfile("playlist-namespace-missing.xspf"))
 
 
-def test_playlist_namespace_nested_broken():
-    Playlist.parse(get_testfile("playlist-namespace-nested-broken.xspf"))
-    raise NotImplementedError
+# I didn't see any errors in `playlist-namespace-nested-broken.xspf` testcase
 
 
 def test_playlist_namespace_wrong_string():

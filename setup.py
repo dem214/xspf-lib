@@ -5,7 +5,7 @@ with open("README.rst", 'r') as readme:
 
 setuptools.setup(
     name="xspf-lib",
-    version="0.0.5",
+    version="0.0.6",
     author="Dzmitry Izaitka",
     author_email="dem214overlord@gmail.com",
     description="Library for work with xspf format",

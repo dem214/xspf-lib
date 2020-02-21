@@ -40,7 +40,7 @@ def test_track_init():
 
 
 def test_playlist_init():
-    pl = Playlist(title="that_playlist",
+    pl = Playlist(title="That playlist",
                   creator="myself",
                   annotation="additional user info",
                   info="https://path_to_more.info",
@@ -61,7 +61,7 @@ def test_playlist_init():
                              Track(title="tr2")])
     pl.date = datetime(2020, 4, 20, 12, 30, 1, 123456)
     response = '<playlist version="1" xmlns="http://xspf.org/ns/0/">'\
-               '<title>that_playlist</title>'\
+               '<title>That playlist</title>'\
                '<creator>myself</creator>'\
                '<annotation>additional user info</annotation>'\
                '<info>https://path_to_more.info</info>'\

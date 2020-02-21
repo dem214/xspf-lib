@@ -462,26 +462,25 @@ class Playlist(UserList):
     @property
     def xml_element(self) -> ET.Element:
         """Return `xml.ElementTree.Element` of the playlist."""
+
         playlist = ET.Element('playlist', {'version': "1",
                                            'xmlns': NS['xspf']})
-        if self.title is not None:
-            ET.SubElement(playlist, 'title').text = str(self.title)
-        if self.creator is not None:
-            ET.SubElement(playlist, 'creator').text = str(self.creator)
-        if self.annotation is not None:
-            ET.SubElement(playlist, 'annotation').text = str(self.annotation)
-        if self.info is not None:
-            ET.SubElement(playlist, 'info').text = str(self.info)
-        if self.location is not None:
-            ET.SubElement(playlist, 'location').text = \
-                str(urlparse.quote(self.location, safe='/:'))
-        if self.identifier is not None:
-            ET.SubElement(playlist, 'identifier').text = str(self.identifier)
-        if self.image is not None:
-            ET.SubElement(playlist, 'image').text = str(self.image)
+
+        # Setting bunch of parameters.
+        for parameter in ['title', 'creator', 'annotation']:
+            attr = self.__dict__[parameter]
+            if attr is not None:
+                ET.SubElement(playlist, parameter).text = str(attr)
+
+        # Setting bunch of uri parameters.
+        for uri_param in ['info', 'location', 'identifier', 'image']:
+            attr = self.__dict__[uri_param]
+            if attr is not None:
+                ET.SubElement(playlist, uri_param).text = str(quote(attr))
+
         ET.SubElement(playlist, 'date').text = self.date.isoformat()
         if self.license is not None:
-            ET.SubElement(playlist, 'license').text = str(self.license)
+            ET.SubElement(playlist, 'license').text = str(quote(self.license))
         if len(self.attribution) > 0:
             attribution = ET.SubElement(playlist, 'attribution')
             for attr in self.attribution[0:9]:
@@ -568,21 +567,15 @@ class Playlist(UserList):
                 raise TypeError(f"Got too many `{attr}` elements in playlist."
                                 f"{ET.tostring(root)}")
 
-        get_simple_element_and_set_attr(root, playlist, 'title')
-        get_simple_element_and_set_attr(root, playlist, 'creator')
-        get_simple_element_and_set_attr(root, playlist, 'annotation')
-        get_simple_uri_element_and_set_attr(root, playlist, 'info')
-        # non-multiple elements of location check
-        locations = root.findall("xspf:location", NS)
-        if len(locations) > 1:
-            raise TypeError(f"Got too many `location` elements in playlist."
-                            f"{ET.tostring(root)}")
-        if len(locations) == 1:
-            location = locations[0]
-            playlist.location = urlparse.unquote(urify(location.text.strip()))
-        get_simple_uri_element_and_set_attr(root, playlist, 'identifier')
-        get_simple_uri_element_and_set_attr(root, playlist, 'image')
-        get_simple_uri_element_and_set_attr(root, playlist, 'license')
+        # Parsing bunch of simple elements
+        for parameter in ['title', 'creator', 'annotation']:
+            get_simple_element_and_set_attr(root, playlist, parameter)
+
+        # Parsing bunch of simple uri elements
+        for uri_parameter in ['info', 'location', 'identifier', 'image',
+                              'license']:
+            get_simple_uri_element_and_set_attr(root, playlist, uri_parameter)
+
         # non-multiple elements of date check
         dates = root.findall("xspf:date", NS)
         if len(dates) > 1:
@@ -623,7 +616,7 @@ class Playlist(UserList):
         elif len(trackLists) > 1:
             raise TypeError(f"Got too many `trackList` elements in playlist."
                             f"{ET.tostring(root)}")
-        elif len(locations) == 0:
+        elif len(trackLists) == 0:
             raise TypeError("trackList element not founded.")
 
         return playlist
@@ -632,7 +625,7 @@ class Playlist(UserList):
         return Attribution(location=self.location, identifier=self.identifier)
 
     @staticmethod
-    def __playlist_validation_xml_root_check(root):
+    def __playlist_validation_xml_root_check(root) -> None:
         # Check for namespace existing.
         if not root.tag[0] == '{':
             raise TypeError("Playlist namespace attribute is missing.\n"

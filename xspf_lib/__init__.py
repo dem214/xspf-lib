@@ -13,10 +13,9 @@ __all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI",
 URI = str
 NS = {'xspf': "http://xspf.org/ns/0/"}
 
-ET.register_namespace('xspf', NS['xspf'])
 
-
-def urify(value: str) -> str:
+class _Uric_helper:
+    __slots__ = {}
     # By RFC 3986
     lowalpha = 'abcdefghijklmnopqrstuvwxyz'
     upalpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -28,12 +27,18 @@ def urify(value: str) -> str:
     reserved = gen_delims + sub_delims
     quoted = '%'
     uric = reserved + unreserved + quoted
+    ET.register_namespace('xspf', NS['xspf'])
 
-    if all(char in uric for char in value):
-        return value
-    else:
-        raise ValueError("Only valid URI is acceptable.\n"
-                         f"Got `{value}`")
+    @staticmethod
+    def urify(value):
+        if all(char in _Uric_helper.uric for char in value):
+            return value
+        else:
+            raise ValueError("Only valid URI is acceptable.\n"
+                             f"Got `{value}`")
+
+
+urify = _Uric_helper.urify
 
 
 def quote(value: str) -> str:
@@ -520,20 +525,20 @@ class Playlist(UserList):
         def get_simple_element_and_set_attr(root, playlist, attr):
             params = root.findall("xspf:" + attr, NS)
             # non-multiple elements of param check
-            if len(params) > 1:
-                raise TypeError(f"Got too many `{attr}` elements in playlist."
-                                f"{ET.tostring(root)}")
             if len(params) == 1:
                 playlist.__setattr__(attr, params[0].text)
+            elif len(params) > 1:
+                raise TypeError(f"Got too many `{attr}` elements in playlist."
+                                f"{ET.tostring(root)}")
 
         def get_simple_uri_element_and_set_attr(root, playlist, attr):
             # non-multiple elements of param check
             params = root.findall("xspf:" + attr, NS)
-            if len(params) > 1:
-                raise TypeError(f"Got too many `{attr}` elements in playlist."
-                                f"{ET.tostring(root)}")
             if len(params) == 1:
                 playlist.__setattr__(attr, urify(params[0].text))
+            elif len(params) > 1:
+                raise TypeError(f"Got too many `{attr}` elements in playlist."
+                                f"{ET.tostring(root)}")
 
         get_simple_element_and_set_attr(root, playlist, 'title')
         get_simple_element_and_set_attr(root, playlist, 'creator')

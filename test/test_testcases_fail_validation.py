@@ -252,3 +252,139 @@ def test_playlist_toomany_title():
 def test_playlist_toomany_tracklist():
     with pytest.raises(TypeError):
         Playlist.parse(get_testfile("playlist-toomany-tracklist.xspf"))
+
+
+def test_track_badint_duration():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile('track-badint-duration.xspf'))
+
+
+def test_track_badint_tracknum():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile('track-badint-tracknum.xspf'))
+
+
+def test_track_extension_application_missing():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile(
+            "track-extension-application-missing.xspf"))
+
+
+def test_track_link_rel_missing():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-link-rel-missing.xspf"))
+
+
+def test_track_markup_album():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-markup-album.xspf"))
+
+
+def test_track_markup_annotation():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-markup-annotation.xspf"))
+
+
+def test_track_markup_creator():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-markup-creator.xspf"))
+
+
+def test_track_markup_meta():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-markup-meta.xspf"))
+
+
+def test_track_markup_title():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-markup-title.xspf"))
+
+
+def test_track_meta_rel_missing():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-meta-rel-missing.xspf"))
+
+
+def test_track_nonleaf_content():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-nonleaf-content.xspf"))
+
+
+def test_track_noturi_extension():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-noturi-extension.xspf"))
+
+
+def test_track_noturi_identifier():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-noturi-identifier.xspf"))
+
+
+def test_track_noturi_image():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-noturi-image.xspf"))
+
+
+def test_track_noturi_info():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-noturi-info.xspf"))
+
+
+def test_track_noturi_link_rel():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-noturi-link-rel.xspf"))
+
+
+def test_track_noturi_location():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-noturi-location.xspf"))
+
+
+def test_track_noturi_meta_rel():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile("track-noturi-meta-rel.xspf"))
+
+
+def test_track_toomany_album():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-toomany-album.xspf"))
+
+
+def test_track_toomany_annotation():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-toomany-annotation.xspf"))
+
+
+def test_track_toomany_creator():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-toomany-creator.xspf"))
+
+
+def test_track_toomany_duration():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-toomany-duration.xspf"))
+
+
+def test_track_toomany_image():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-toomany-image.xspf"))
+
+
+def test_track_toomany_info():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-toomany-info.xspf"))
+
+
+def test_track_toomany_title():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-toomany-title.xspf"))
+
+
+def test_track_toomany_tracknum():
+    with pytest.raises(TypeError):
+        Playlist.parse(get_testfile("track-toomany-tracknum.xspf"))
+
+
+def test_track_whitespace_in_between():
+    with pytest.raises(ValueError):
+        Playlist.parse(get_testfile('track-whitespace-in-between.xspf'))

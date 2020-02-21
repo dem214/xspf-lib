@@ -353,6 +353,10 @@ class Track():
         if element.tag != ''.join(['{', NS["xspf"], '}track']):
             raise TypeError("Track element not contain 'track' tag ",
                             "or namespace setted wrong", object=element)
+        # Track nonleaf content checking.
+        if element.text is not None and not element.text.isspace():
+            raise TypeError("Track nonleaf content is not allowed.\n"
+                            f"| Got `{element.text}`.")
         track = Track()
         locations = element.findall("xspf:location", NS)
         if len(locations) > 0:
@@ -361,26 +365,67 @@ class Track():
         identifiers = element.findall("xspf:identifier", NS)
         if len(identifiers) > 0:
             track.identifier = [
-                identifier.text.strip() for identifier in identifiers
-            ]
+                urlparse.unquote(urify(identifier.text.strip()))
+                for identifier in identifiers]
 
         def get_simple_element_and_set_attr(element, track, attr):
-            param = element.find("xspf:" + attr, NS)
-            if param is not None:
-                setattr(track, attr, param.text)
+            params = element.findall("xspf:" + attr, NS)
+            if len(params) == 1:
+                param = params[0]
+                # Check for inserted markup.
+                if len(list(param)) > 0:
+                    raise ValueError("Got nested elements in expected text. "
+                                     "Probably, this is unexpected HTML "
+                                     "insertion.\n"
+                                     f"{ET.tostring(param)}")
+                # Chech for forbidden attributes
+                if len(param.attrib) > 0 and \
+                        param.keys() != \
+                        ["{http://www.w3.org/XML/1998/namespace}base"]:
+                    raise TypeError("Element contains forbidden attribute "
+                                    f"{param.attrib}.\n"
+                                    f"{ET.tostring(param)}")
+                track.__setattr__(attr, param.text)
+            # non-multiple elements of param check
+            elif len(params) > 1:
+                raise TypeError(f"Got too many `{attr}` elements in track."
+                                f"{ET.tostring(element)}")
+
+        def get_simple_uri_element_and_set_attr(element, track, attr):
+            params = element.findall("xspf:" + attr, NS)
+            if len(params) == 1:
+                param = params[0]
+                # Chech for forbidden attributes
+                if len(param.attrib) > 0 and \
+                        param.keys() != \
+                        ["{http://www.w3.org/XML/1998/namespace}base"]:
+                    raise TypeError("Element contains forbidden attribute "
+                                    f"{param.attrib}.\n"
+                                    f"{ET.tostring(param)}")
+                track.__setattr__(attr, urify(param.text))
+            # non-multiple elements of param check
+            elif len(params) > 1:
+                raise TypeError(f"Got too many `{attr}` elements in track."
+                                f"{ET.tostring(element)}")
 
         get_simple_element_and_set_attr(element, track, 'title')
         get_simple_element_and_set_attr(element, track, 'creator')
         get_simple_element_and_set_attr(element, track, 'annotation')
-        get_simple_element_and_set_attr(element, track, 'info')
-        get_simple_element_and_set_attr(element, track, 'image')
+        get_simple_uri_element_and_set_attr(element, track, 'info')
+        get_simple_uri_element_and_set_attr(element, track, 'image')
         get_simple_element_and_set_attr(element, track, 'album')
-        trackNum = element.find("xspf:trackNum", NS)
-        if trackNum is not None:
-            track.trackNum = int(trackNum.text)
-        duration = element.find("xspf:duration", NS)
-        if duration is not None:
-            track.duration = int(duration.text)
+        trackNums = element.findall("xspf:trackNum", NS)
+        if len(trackNums) == 1:
+            track.trackNum = int(trackNums[0].text)
+        elif len(trackNums) > 1:
+            raise TypeError(f"Got too many `trackNum` elements in track."
+                            f"{ET.tostring(element)}")
+        durations = element.findall("xspf:duration", NS)
+        if len(durations) == 1:
+            track.duration = int(durations[0].text)
+        elif len(durations) > 1:
+            raise TypeError(f"Got too many `duration` elements in track."
+                            f"{ET.tostring(element)}")
         track.link.extend(Link._from_element(link) for link in
                           element.findall("xspf:link", NS))
         track.meta.extend(Meta._from_element(meta) for meta in

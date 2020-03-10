@@ -568,7 +568,8 @@ class Playlist(UserList):
     @classmethod
     def _parse_xml(cls, root) -> 'Playlist':
 
-        cls.__playlist_validation_xml_root_check(root)
+        parser = _PlaylistParser(root)
+        parser.parse()
 
         playlist = cls()
 
@@ -669,27 +670,53 @@ class Playlist(UserList):
     def _to_attribution(self) -> Attribution:
         return Attribution(location=self.location, identifier=self.identifier)
 
-    @staticmethod
-    def __playlist_validation_xml_root_check(root) -> None:
-        # Check for namespace existing.
-        if not root.tag[0] == '{':
+
+class _PlaylistParser:
+    __slots__ = ['xml_element', 'playlist']
+
+    def __init__(self, xml_element: ET.Element):
+        self.xml_element = xml_element
+        self.playlist = Playlist()
+
+    def parse(self):
+        self.check_all_in_root_element()
+        #self.insert_name(self.get_xml_name())
+
+    def check_all_in_root_element(self):
+        self.check_namespace_is_exist()
+        self.check_for_right_namespace_string()
+        self.check_root_tag_name()
+        self.check_version_attribute_is_exist()
+        self.check_forbidden_root_attributes()
+        self.check_value_of_version()
+        self.check_nonleaf_content()
+
+    def check_namespace_is_exist(self):
+        if not self.xml_element.tag[0] == '{':
             raise TypeError("Playlist namespace attribute is missing.\n"
-                            f"{ET.tostring(root)}")
-        # Check for right namespace string.
-        if not root.tag.startswith(''.join(['{', NS["xspf"], '}'])):
+                            f"{ET.tostring(self.xml_element)}")
+
+    def check_for_right_namespace_string(self):
+        if not self.xml_element.tag.startswith(
+                ''.join(['{', NS["xspf"], '}'])):
+            wrong_namespace = self.xml_element.tag.split('}')[0].lstrip('{')
             raise ValueError("Namespace is wrong string.\n"
                              f"| Expected `{NS['xspf']}`.\n"
-                             f"| Got `{root.tag.split('}')[0].lstrip('{')}`.")
-        # Root name check.
-        if root.tag != ''.join(['{', NS['xspf'], '}playlist']):
+                             f"| Got `{wrong_namespace}`.")
+
+    def check_root_tag_name(self):
+        if self.xml_element.tag != ''.join(['{', NS['xspf'], '}playlist']):
             raise ValueError("Root tag name is not correct.\n"
                              "| Expected: `playlist`.\n"
-                             f"| Got: `{root.tag.split('}')[1]}`")
-        root_attribs = root.keys()
+                             f"| Got: `{self.xml_element.tag.split('}')[1]}`")
+
+    def check_version_attribute_is_exist(self):
         # Version attribute check.
-        if 'version' not in root_attribs:
+        if 'version' not in self.xml_element.keys():
             raise TypeError("version attribute of playlist is missing.")
-        # Forbidden attribute check -- all except `version` and `base`.
+
+    def check_forbidden_root_attributes(self):
+        root_attribs = self.xml_element.keys()
         if not (root_attribs == ['version'] or root_attribs == [
                 'version', '{http://www.w3.org/XML/1998/namespace}base']):
             forbidden_attributes = list(root_attribs)
@@ -704,8 +731,9 @@ class Playlist(UserList):
                 pass
             raise TypeError("<playlist> element contains forbidden elements.\n"
                             f"{forbidden_attributes}")
-        # Value of version checking.
-        version = int(root.get("version"))
+
+    def check_value_of_version(self):
+        version = int(self.xml_element.get("version"))
         # 0 version not implemented
         if version == 0:
             raise ValueError("XSPF version 0 not maintained, "
@@ -716,7 +744,89 @@ class Playlist(UserList):
                 "The 'version' attribute must be 1.\n"
                 f"Your playlist version setted to {version}.\n"
                 "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
-        # Playlist nonleaf content checking.
-        if root.text is not None and not root.text.isspace():
+
+    def check_nonleaf_content(self):
+        if self.xml_element.text is not None and \
+                not self.xml_element.text.isspace():
             raise TypeError("Playlist nonleaf content is not allowed.\n"
-                            f"| Got `{root.text}`.")
+                            f"| Got `{self.xml_element.text}`.")
+
+    def insert_name(self, name):
+        self.insert_parameter_if_not_null('name', name)
+
+    def get_xml_name(self) -> str:
+        return self.get_xml_leaf_parameter('name')
+
+    def insert_parameter_if_not_null(self, parameter_name: str,
+                                     parameter_value: str):
+        if parameter_value is not None:
+            self.playlist.__setattr__(parameter_name, parameter_value)
+
+    def get_xml_leaf_parameter_value(self, parameter_name):
+        self.check_single_element_in_root(parameter_name)
+        parameter = self.xml_element.find("xspf:" + parameter_name, NS)
+        if parameter is not None:
+            self.check_inserted_markup(parameter)
+            self.check_forbidden_element_attributes(parameter)
+            return parameter.text
+
+    def check_single_element_in_root(self, element_name):
+        if len(self.xml_element.findall("xspf:" + element_name, NS)) > 1:
+            raise TypeError(f"Got too many `{element_name}` elements in "
+                            "playlist.\n"
+                            f"{ET.tostring(self.xml_element)}")
+
+    def check_inserted_markup(self, element):
+        if len(list(element)) > 0:
+            raise ValueError("Got nested elements in expected text. "
+                             "Probably, this is unexpected HTML "
+                             "insertion.\n"
+                             f"{ET.tostring(element)}")
+
+    def check_forbidden_element_attributes(element):
+        if len(element.attrib) > 0 and \
+                element.keys() != \
+                ["{http://www.w3.org/XML/1998/namespace}base"]:
+            raise TypeError("Element contains forbidden attribute "
+                            f"{element.attrib}.\n"
+                            f"{ET.tostring(element)}")
+
+    def get_simple_element_and_set_attr(root, playlist, attr):
+        params = root.findall("xspf:" + attr, NS)
+        if len(params) == 1:
+            param = params[0]
+            # Check for inserted markup.
+            if len(list(param)) > 0:
+                raise ValueError("Got nested elements in expected text. "
+                                 "Probably, this is unexpected HTML "
+                                 "insertion.\n"
+                                 f"{ET.tostring(param)}")
+            # Chech for forbidden attributes
+            if len(param.attrib) > 0 and \
+                    param.keys() != \
+                    ["{http://www.w3.org/XML/1998/namespace}base"]:
+                raise TypeError("Element contains forbidden attribute "
+                                f"{param.attrib}.\n"
+                                f"{ET.tostring(param)}")
+            playlist.__setattr__(attr, params[0].text)
+        # non-multiple elements of param check
+        elif len(params) > 1:
+            raise TypeError(f"Got too many `{attr}` elements in playlist."
+                            f"{ET.tostring(root)}")
+
+    def get_simple_uri_element_and_set_attr(root, playlist, attr):
+        # non-multiple elements of param check
+        params = root.findall("xspf:" + attr, NS)
+        if len(params) == 1:
+            # Chech for forbidden attributes
+            param = params[0]
+            if len(param.attrib) > 0 and \
+                    param.keys() != \
+                    ["{http://www.w3.org/XML/1998/namespace}base"]:
+                raise TypeError("Element contains forbidden attribute "
+                                f"{param.attrib}.\n"
+                                f"{ET.tostring(param)}")
+            playlist.__setattr__(attr, urify(param.text))
+        elif len(params) > 1:
+            raise TypeError(f"Got too many `{attr}` elements in playlist."
+                            f"{ET.tostring(root)}")

@@ -27,13 +27,14 @@ Example
                               annotation="#2 in GB 1975",
                               info="https://ru.wikipedia.org/wiki/Killer_Queen",
                               image="file:///home/images/killer_queen_cover.png")
->>> anbtd = xspf.Track(location=["https://freemusic.example.com/loc.ogg",
-                                 "file:///home/music/anbtd.mp3"],
-                       title="Another One Bites the Dust",
-                       creator="Queen",
-                       identifier="id1.group",
-                       link=[xspf.Link("link.namespace", "link.uri.info")],
-                       meta=[xspf.Meta("meta.namespace", "METADATA_INFO")])
+>>> anbtd = xspf.Track()
+>>> anbtd.location = ["https://freemusic.example.com/loc.ogg"
+                      "file:///home/music/anbtd.mp3"]
+>>> anbtd.title = "Another One Bites the Dust"
+>>> anbtd.creator = "Queen"
+>>> anbtd.identifier = "id1.group"
+>>> anbtd.link = [xspf.Link("link.namespace", "link.uri.info")]
+>>> anbtd.meta = [xspf.Meta("meta.namespace", "METADATA_INFO")]
 >>> playlist = xspf.Playlist(title="Some Tracks",
                              creator="myself",
                              annotation="I did this only for examples!.",

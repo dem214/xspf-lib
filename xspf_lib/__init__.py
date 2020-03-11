@@ -142,7 +142,7 @@ class Meta(XMLAble):
         return el
 
 
-class Attribution:
+class Attribution(XMLAble):
     """Object representation of `attribution` element.
 
     Can contain `location` attribute or `identifier` atribute or both.
@@ -192,6 +192,9 @@ class Attribution:
             el = ET.Element('identifier')
             el.text = str(self.identifier)
             yield el
+
+    def to_xml_element(self) -> ET.Element:
+        return ET.Element('attribution').extend(self.xml_elements)
 
     @staticmethod
     def parse_from_xml_element(element) -> 'Attribution':

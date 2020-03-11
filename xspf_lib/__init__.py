@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from collections import UserList
 import urllib.parse as urlparse
 from dataclasses import dataclass
+from abc import ABC, abstractmethod, abstractstaticmethod
 
 __all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI",
            "Attribution"]
@@ -20,7 +21,18 @@ def quote(value: str) -> str:
     return urlparse.quote(value, safe='/:')
 
 
-class Extension():
+class XMLAble(ABC):
+
+    @abstractmethod
+    def to_xml_element(self) -> ET.Element:
+        pass
+
+    @abstractstaticmethod
+    def parse_from_xml_element(element):
+        pass
+
+
+class Extension(XMLAble):
     """Class for XML extensions of XSPF playlists and tracks."""
 
     __slots__ = ['application', 'extra_attrib', 'content']
@@ -46,7 +58,7 @@ class Extension():
         self.extra_attrib = extra_attrib
         self.content = content
 
-    def _to_element(self) -> ET.Element:
+    def to_xml_element(self) -> ET.Element:
         """Extention to `xml.etree.ElementTree.Element` conversion."""
         el = ET.Element('extension',
                         attrib={'application': self.application,
@@ -55,7 +67,7 @@ class Extension():
         return el
 
     @staticmethod
-    def _from_element(element: ET.Element) -> 'Extension':
+    def parse_from_xml_element(element: ET.Element) -> 'Extension':
         """`xml.etree.ElementTree.Element` to Extension coversion."""
         application = _Parser.urify(element.get("application"))
         if application is None:
@@ -69,7 +81,7 @@ class Extension():
 
 
 @dataclass
-class Link:
+class Link(XMLAble):
     """Object representation of `link` element.
 
     The link element allows XSPF to be extended without the use of
@@ -83,22 +95,22 @@ class Link:
     rel: URI
     content: URI = ''
 
-    @classmethod
-    def _from_element(cls, element):
+    @staticmethod
+    def parse_from_xml_element(element):
         rel = _Parser.urify(element.get('rel'))
         if rel is None:
             raise TypeError("`rel` attribute of link is missing\n"
                             f"{ET.tostring(element)}")
-        return cls(rel=rel, content=_Parser.urify(element.text))
+        return Link(rel=rel, content=_Parser.urify(element.text))
 
-    def _to_element(self) -> ET.Element:
+    def to_xml_element(self) -> ET.Element:
         el = ET.Element('link', {'rel': str(self.rel)})
         el.text = str(self.content)
         return el
 
 
 @dataclass()
-class Meta:
+class Meta(XMLAble):
     """Object representation of `meta` element.
 
     The meta element allows metadata fields to be added to XSPF.
@@ -111,8 +123,8 @@ class Meta:
     rel: URI
     content: str = ''
 
-    @classmethod
-    def _from_element(cls, element):
+    @staticmethod
+    def parse_from_xml_element(element):
         # Check for markup.
         if len(list(element)) > 0:
             raise ValueError("Got nested elements in expected text. "
@@ -122,9 +134,9 @@ class Meta:
         if rel is None:
             raise TypeError("`rel` attribute of meta is missing\n"
                             f"{ET.tostring(element)}")
-        return cls(rel=rel, content=element.text)
+        return Meta(rel=rel, content=element.text)
 
-    def _to_element(self) -> ET.Element:
+    def to_xml_element(self) -> ET.Element:
         el = ET.Element('meta', {'rel': str(self.rel)})
         el.text = str(self.content)
         return el
@@ -181,8 +193,8 @@ class Attribution:
             el.text = str(self.identifier)
             yield el
 
-    @classmethod
-    def _from_element(cls, element) -> 'Attribution':
+    @staticmethod
+    def parse_from_xml_element(element) -> 'Attribution':
         if element.tag == ''.join(['{', NS['xspf'], '}location']):
             return Attribution(
                 location=urlparse.unquote(_Parser.urify(element.text.strip())))
@@ -196,7 +208,7 @@ class Attribution:
                             f"Got {ET.tostring(element)}.")
 
 
-class Track():
+class Track(XMLAble):
     """Track info class."""
 
     def __init__(self,
@@ -258,21 +270,20 @@ class Track():
             repr += '>'
         return repr
 
-    @property
-    def xml_element(self) -> ET.Element:
+    def to_xml_element(self) -> ET.Element:
         """Create `xml.ElementTree.Element` of the track."""
         return _XML_Builder(self).build_track()
 
     def xml_string(self) -> str:
         """Return XML representation of track."""
-        return ET.tostring(self.xml_element, encoding="UTF-8").decode()
+        return ET.tostring(self.to_xml_element(), encoding="UTF-8").decode()
 
     @staticmethod
-    def _parse_xml(element):
+    def parse_from_xml_element(element) -> 'Track':
         return _TrackParser(element).parse()
 
 
-class Playlist(UserList):
+class Playlist(UserList, XMLAble):
     """Playlist info class."""
 
     def __init__(self,
@@ -340,19 +351,18 @@ class Playlist(UserList):
         repr += f': {len(self.trackList)} tracks>'
         return repr
 
-    @property
-    def xml_element(self) -> ET.Element:
+    def to_xml_element(self) -> ET.Element:
         """Return `xml.ElementTree.Element` of the playlist."""
         return _XML_Builder(self).build_playlist()
 
     @property
     def xml_eltree(self) -> ET.ElementTree:
         """Return `xml.etree.ElementTree.ElementTree` object of playlist."""
-        return ET.ElementTree(element=self.xml_element)
+        return ET.ElementTree(element=self.to_xml_element())
 
     def xml_string(self) -> str:
         """Return XML representation of playlist."""
-        return ET.tostring(self.xml_element, encoding="UTF-8").decode()
+        return ET.tostring(self.to_xml_element(), encoding="UTF-8").decode()
 
     def write(self, file_or_filename, encoding="utf-8") -> None:
         """Write playlist into file."""
@@ -366,10 +376,10 @@ class Playlist(UserList):
     @classmethod
     def parse(cls, filename) -> 'Playlist':
         """Parse XSPF file into `xspf_lib.Playlist` entity."""
-        return cls._parse_xml(ET.parse(filename).getroot())
+        return cls.parse_from_xml_element(ET.parse(filename).getroot())
 
-    @classmethod
-    def _parse_xml(cls, root) -> 'Playlist':
+    @staticmethod
+    def parse_from_xml_element(root) -> 'Playlist':
         return _PlaylistParser(root).parse()
 
     def _to_attribution(self) -> Attribution:
@@ -528,7 +538,7 @@ class _XML_Builder:
 
     def add_trackList(self):
         ET.SubElement(self.xml_element, 'trackList').extend(
-            track.xml_element for track in self.entity.trackList
+            track.to_xml_element() for track in self.entity.trackList
         )
 
     def add_title(self):
@@ -581,8 +591,8 @@ class _XML_Builder:
                 str(parameter)
 
     def add_iterable_parameter(self, parameter_name: str):
-        parameter_iter: int = getattr(self.entity, parameter_name)
-        self.xml_element.extend(parameter._to_element()
+        parameter_iter: iter[XMLAble] = getattr(self.entity, parameter_name)
+        self.xml_element.extend(parameter.to_xml_element()
                                 for parameter in parameter_iter)
 
 
@@ -640,17 +650,17 @@ class _Parser():
 
     def insert_links(self) -> None:
         self.parsing_entity.link.extend(
-            Link._from_element(link) for link in
+            Link.parse_from_xml_element(link) for link in
             self.xml_element.findall("xspf:link", NS))
 
     def insert_metas(self) -> None:
         self.parsing_entity.meta.extend(
-            Meta._from_element(meta) for meta in
+            Meta.parse_from_xml_element(meta) for meta in
             self.xml_element.findall("xspf:meta", NS))
 
     def insert_extensions(self) -> None:
         self.parsing_entity.extension.extend(
-            Extension._from_element(extension) for extension in
+            Extension.parse_from_xml_element(extension) for extension in
             self.xml_element.findall('xspf:extension', NS))
 
     def insert_parameter_if_not_null(self, parameter_name: str,
@@ -894,7 +904,7 @@ class _PlaylistParser(_Parser):
         if attribution is not None:
             self.__class__.check_element_nonleaf_content(attribution)
             self.parsing_entity.attribution.extend(
-                Attribution()._from_element(attr)
+                Attribution().parse_from_xml_element(attr)
                 for attr in attribution)
 
     def insert_trackList(self) -> None:
@@ -902,7 +912,7 @@ class _PlaylistParser(_Parser):
         trackList = self.xml_element.find("xspf:trackList", NS)
         self.__class__.check_element_nonleaf_content(trackList)
         self.parsing_entity.trackList.extend(
-            Track._parse_xml(track) for track in trackList)
+            Track.parse_from_xml_element(track) for track in trackList)
 
     def check_trackList_is_only_one(self) -> None:
         self.check_single_element_in_root('trackList')

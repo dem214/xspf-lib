@@ -16,32 +16,6 @@ NS = {'xspf': "http://xspf.org/ns/0/"}
 ET.register_namespace('xspf', NS['xspf'])
 
 
-class _Uric_helper:
-    __slots__ = {}
-    # By RFC 3986
-    lowalpha = 'abcdefghijklmnopqrstuvwxyz'
-    upalpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    alpha = lowalpha + upalpha
-    digit = '0123456789'
-    unreserved = alpha + digit + '-._~'
-    gen_delims = ':/?#[]@'
-    sub_delims = '!$&\'()*+,;='
-    reserved = gen_delims + sub_delims
-    quoted = '%'
-    uric = reserved + unreserved + quoted
-
-    @staticmethod
-    def urify(value):
-        if all(char in _Uric_helper.uric for char in value):
-            return value
-        else:
-            raise ValueError("Only valid URI is acceptable.\n"
-                             f"Got `{value}`")
-
-
-urify = _Uric_helper.urify
-
-
 def quote(value: str) -> str:
     return urlparse.quote(value, safe='/:')
 
@@ -83,7 +57,7 @@ class Extension():
     @staticmethod
     def _from_element(element: ET.Element) -> 'Extension':
         """`xml.etree.ElementTree.Element` to Extension coversion."""
-        application = urify(element.get("application"))
+        application = _Parser.urify(element.get("application"))
         if application is None:
             raise TypeError(
                 "Extension parsing missing attribute `application`")
@@ -111,11 +85,11 @@ class Link:
 
     @classmethod
     def _from_element(cls, element):
-        rel = urify(element.get('rel'))
+        rel = _Parser.urify(element.get('rel'))
         if rel is None:
             raise TypeError("`rel` attribute of link is missing\n"
                             f"{ET.tostring(element)}")
-        return cls(rel=rel, content=urify(element.text))
+        return cls(rel=rel, content=_Parser.urify(element.text))
 
     def _to_element(self) -> ET.Element:
         el = ET.Element('link', {'rel': str(self.rel)})
@@ -144,7 +118,7 @@ class Meta:
             raise ValueError("Got nested elements in expected text. "
                              "Probably, this is unexpected HTML insertion.\n"
                              f"{ET.tostring(element)}")
-        rel = urify(element.get('rel'))
+        rel = _Parser.urify(element.get('rel'))
         if rel is None:
             raise TypeError("`rel` attribute of meta is missing\n"
                             f"{ET.tostring(element)}")
@@ -211,9 +185,9 @@ class Attribution:
     def _from_element(cls, element) -> 'Attribution':
         if element.tag == ''.join(['{', NS['xspf'], '}location']):
             return Attribution(
-                location=urlparse.unquote(urify(element.text.strip())))
+                location=urlparse.unquote(_Parser.urify(element.text.strip())))
         elif element.tag == ''.join(['{', NS['xspf'], '}identifier']):
-            return Attribution(identifier=urify(element.text))
+            return Attribution(identifier=_Parser.urify(element.text))
         else:
             # No `location` and `identifier` attribution is not allowed
             raise TypeError("Forbidden element in attribution.\n"
@@ -494,6 +468,26 @@ class _Parser():
     def __init__(self, xml_element):
         self.xml_element = xml_element
 
+    # URI checker By RFC 3986
+    lowalpha = 'abcdefghijklmnopqrstuvwxyz'
+    upalpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alpha = lowalpha + upalpha
+    digit = '0123456789'
+    unreserved = alpha + digit + '-._~'
+    gen_delims = ':/?#[]@'
+    sub_delims = '!$&\'()*+,;='
+    reserved = gen_delims + sub_delims
+    quoted = '%'
+    uric = reserved + unreserved + quoted
+
+    @staticmethod
+    def urify(value):
+        if all(char in _Parser.uric for char in value):
+            return value
+        else:
+            raise ValueError("Only valid URI is acceptable.\n"
+                             f"Got `{value}`")
+
     @staticmethod
     def check_element_nonleaf_content(element) -> None:
         if element.text is not None and \
@@ -568,7 +562,7 @@ class _Parser():
             self.__class__.check_forbidden_element_attributes(parameter)
             ret_text = parameter.text
             if need_urify:
-                ret_text = urify(ret_text)
+                ret_text = self.__class__.urify(ret_text)
             return ret_text
 
     def check_single_element_in_root(self, element_name: str) -> None:
@@ -637,14 +631,14 @@ class _TrackParser(_Parser):
         locations = self.xml_element.findall("xspf:location", NS)
         if len(locations) > 0:
             self.parsing_entity.location = [
-                urlparse.unquote(urify(location.text.strip()))
+                urlparse.unquote(self.__class__.urify(location.text.strip()))
                 for location in locations]
 
     def insert_identifiers(self) -> None:
         identifiers = self.xml_element.findall("xspf:identifier", NS)
         if len(identifiers) > 0:
             self.parsing_entity.identifier = [
-                urlparse.unquote(urify(identifier.text.strip()))
+                urlparse.unquote(self.__class__.urify(identifier.text.strip()))
                 for identifier in identifiers]
 
     def insert_album(self) -> None:

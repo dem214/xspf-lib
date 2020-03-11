@@ -350,90 +350,7 @@ class Track():
 
     @staticmethod
     def _parse_xml(element):
-        if element.tag != ''.join(['{', NS["xspf"], '}track']):
-            raise TypeError("Track element not contain 'track' tag ",
-                            "or namespace setted wrong", object=element)
-        # Track nonleaf content checking.
-        if element.text is not None and not element.text.isspace():
-            raise TypeError("Track nonleaf content is not allowed.\n"
-                            f"| Got `{element.text}`.")
-        track = Track()
-        locations = element.findall("xspf:location", NS)
-        if len(locations) > 0:
-            track.location = [urlparse.unquote(urify(location.text.strip()))
-                              for location in locations]
-        identifiers = element.findall("xspf:identifier", NS)
-        if len(identifiers) > 0:
-            track.identifier = [
-                urlparse.unquote(urify(identifier.text.strip()))
-                for identifier in identifiers]
-
-        def get_simple_element_and_set_attr(element, track, attr):
-            params = element.findall("xspf:" + attr, NS)
-            if len(params) == 1:
-                param = params[0]
-                # Check for inserted markup.
-                if len(list(param)) > 0:
-                    raise ValueError("Got nested elements in expected text. "
-                                     "Probably, this is unexpected HTML "
-                                     "insertion.\n"
-                                     f"{ET.tostring(param)}")
-                # Chech for forbidden attributes
-                if len(param.attrib) > 0 and \
-                        param.keys() != \
-                        ["{http://www.w3.org/XML/1998/namespace}base"]:
-                    raise TypeError("Element contains forbidden attribute "
-                                    f"{param.attrib}.\n"
-                                    f"{ET.tostring(param)}")
-                track.__setattr__(attr, param.text)
-            # non-multiple elements of param check
-            elif len(params) > 1:
-                raise TypeError(f"Got too many `{attr}` elements in track."
-                                f"{ET.tostring(element)}")
-
-        def get_simple_uri_element_and_set_attr(element, track, attr):
-            params = element.findall("xspf:" + attr, NS)
-            if len(params) == 1:
-                param = params[0]
-                # Chech for forbidden attributes
-                if len(param.attrib) > 0 and \
-                        param.keys() != \
-                        ["{http://www.w3.org/XML/1998/namespace}base"]:
-                    raise TypeError("Element contains forbidden attribute "
-                                    f"{param.attrib}.\n"
-                                    f"{ET.tostring(param)}")
-                track.__setattr__(attr, urify(param.text))
-            # non-multiple elements of param check
-            elif len(params) > 1:
-                raise TypeError(f"Got too many `{attr}` elements in track."
-                                f"{ET.tostring(element)}")
-
-        get_simple_element_and_set_attr(element, track, 'title')
-        get_simple_element_and_set_attr(element, track, 'creator')
-        get_simple_element_and_set_attr(element, track, 'annotation')
-        get_simple_uri_element_and_set_attr(element, track, 'info')
-        get_simple_uri_element_and_set_attr(element, track, 'image')
-        get_simple_element_and_set_attr(element, track, 'album')
-        trackNums = element.findall("xspf:trackNum", NS)
-        if len(trackNums) == 1:
-            track.trackNum = int(trackNums[0].text)
-        elif len(trackNums) > 1:
-            raise TypeError(f"Got too many `trackNum` elements in track."
-                            f"{ET.tostring(element)}")
-        durations = element.findall("xspf:duration", NS)
-        if len(durations) == 1:
-            track.duration = int(durations[0].text)
-        elif len(durations) > 1:
-            raise TypeError(f"Got too many `duration` elements in track."
-                            f"{ET.tostring(element)}")
-        track.link.extend(Link._from_element(link) for link in
-                          element.findall("xspf:link", NS))
-        track.meta.extend(Meta._from_element(meta) for meta in
-                          element.findall("xspf:meta", NS))
-        track.extension.extend(
-            Extension._from_element(extension) for extension in
-            element.findall('xspf:extension', NS))
-        return track
+        return _TrackParser(element).parse()
 
 
 class Playlist(UserList):
@@ -567,136 +484,208 @@ class Playlist(UserList):
 
     @classmethod
     def _parse_xml(cls, root) -> 'Playlist':
-
-        parser = _PlaylistParser(root)
-        parser.parse()
-
-        playlist = cls()
-
-        def get_simple_element_and_set_attr(root, playlist, attr):
-            params = root.findall("xspf:" + attr, NS)
-            if len(params) == 1:
-                param = params[0]
-                # Check for inserted markup.
-                if len(list(param)) > 0:
-                    raise ValueError("Got nested elements in expected text. "
-                                     "Probably, this is unexpected HTML "
-                                     "insertion.\n"
-                                     f"{ET.tostring(param)}")
-                # Chech for forbidden attributes
-                if len(param.attrib) > 0 and \
-                        param.keys() != \
-                        ["{http://www.w3.org/XML/1998/namespace}base"]:
-                    raise TypeError("Element contains forbidden attribute "
-                                    f"{param.attrib}.\n"
-                                    f"{ET.tostring(param)}")
-                playlist.__setattr__(attr, params[0].text)
-            # non-multiple elements of param check
-            elif len(params) > 1:
-                raise TypeError(f"Got too many `{attr}` elements in playlist."
-                                f"{ET.tostring(root)}")
-
-        def get_simple_uri_element_and_set_attr(root, playlist, attr):
-            # non-multiple elements of param check
-            params = root.findall("xspf:" + attr, NS)
-            if len(params) == 1:
-                # Chech for forbidden attributes
-                param = params[0]
-                if len(param.attrib) > 0 and \
-                        param.keys() != \
-                        ["{http://www.w3.org/XML/1998/namespace}base"]:
-                    raise TypeError("Element contains forbidden attribute "
-                                    f"{param.attrib}.\n"
-                                    f"{ET.tostring(param)}")
-                playlist.__setattr__(attr, urify(param.text))
-            elif len(params) > 1:
-                raise TypeError(f"Got too many `{attr}` elements in playlist."
-                                f"{ET.tostring(root)}")
-
-        # Parsing bunch of simple elements
-        for parameter in ['title', 'creator', 'annotation']:
-            get_simple_element_and_set_attr(root, playlist, parameter)
-
-        # Parsing bunch of simple uri elements
-        for uri_parameter in ['info', 'location', 'identifier', 'image',
-                              'license']:
-            get_simple_uri_element_and_set_attr(root, playlist, uri_parameter)
-
-        # non-multiple elements of date check
-        dates = root.findall("xspf:date", NS)
-        if len(dates) > 1:
-            raise TypeError(f"Got too many `date` elements in playlist."
-                            f"{ET.tostring(root)}")
-        if len(dates) == 1:
-            playlist.date = datetime.fromisoformat(dates[0].text.strip())
-        # non-multiple elements of attribution check
-        attributions = root.findall("xspf:attribution", NS)
-        if len(attributions) > 1:
-            raise TypeError(f"Got too many `attribution` elements in playlist."
-                            f"{ET.tostring(root)}")
-        if len(attributions) == 1:
-            attribution = attributions[0]
-            # Attribution nonleaf content checking.
-            if attribution.text is not None and not attribution.text.isspace():
-                raise TypeError("Attribution nonleaf content not allowed.\n"
-                                f"Got {attribution.text}")
-            playlist.attribution.extend(Attribution()._from_element(attr)
-                                        for attr in attribution)
-        playlist.link.extend(Link._from_element(link) for link in
-                             root.findall("xspf:link", NS))
-        playlist.meta.extend(Meta._from_element(meta) for meta in
-                             root.findall("xspf:meta", NS))
-        playlist.extension.extend(
-            Extension._from_element(extension) for extension in
-            root.findall('xspf:extension', NS))
-        # non-multiple elements of trackList check
-        trackLists = root.findall("xspf:trackList", NS)
-        if len(trackLists) == 1:
-            trackList = trackLists[0]
-            # Non leaf content check.
-            if trackList.text is not None and not trackList.text.isspace():
-                raise TypeError("trackList nonleaf content not allowed.\n"
-                                f"| Got: `{trackList.text}`.")
-            playlist.trackList.extend(Track._parse_xml(track)
-                                      for track in trackList)
-        elif len(trackLists) > 1:
-            raise TypeError(f"Got too many `trackList` elements in playlist."
-                            f"{ET.tostring(root)}")
-        elif len(trackLists) == 0:
-            raise TypeError("trackList element not founded.")
-
-        return playlist
+        return _PlaylistParser(root).parse()
 
     def _to_attribution(self) -> Attribution:
         return Attribution(location=self.location, identifier=self.identifier)
 
 
-class _PlaylistParser:
-    __slots__ = ['xml_element', 'playlist']
+class _Parser():
+    def __init__(self, xml_element):
+        self.xml_element = xml_element
+
+    @staticmethod
+    def check_element_nonleaf_content(element) -> None:
+        if element.text is not None and \
+                not element.text.isspace():
+            raise TypeError(f"Element <{element.tag}> nonleaf "
+                            "content is not allowed.\n"
+                            f"| Got `{element.text}`.")
+
+    def insert_title(self) -> None:
+        title = self.get_xml_leaf_parameter_value('title')
+        self.insert_parameter_if_not_null('title', title)
+
+    def insert_creator(self) -> None:
+        creator = self.get_xml_leaf_parameter_value('creator')
+        self.insert_parameter_if_not_null('creator', creator)
+
+    def insert_annotation(self) -> None:
+        annotation = self.get_xml_leaf_parameter_value('annotation')
+        self.insert_parameter_if_not_null('annotation', annotation)
+
+    def insert_info(self):
+        info = self.get_xml_leaf_parameter_uri_value('info')
+        self.insert_parameter_if_not_null('info', info)
+
+    def insert_image(self) -> None:
+        image = self.get_xml_leaf_parameter_uri_value('image')
+        self.insert_parameter_if_not_null('image', image)
+
+    def insert_links(self) -> None:
+        self.parsing_entity.link.extend(
+            Link._from_element(link) for link in
+            self.xml_element.findall("xspf:link", NS))
+
+    def insert_metas(self) -> None:
+        self.parsing_entity.meta.extend(
+            Meta._from_element(meta) for meta in
+            self.xml_element.findall("xspf:meta", NS))
+
+    def insert_extensions(self) -> None:
+        self.parsing_entity.extension.extend(
+            Extension._from_element(extension) for extension in
+            self.xml_element.findall('xspf:extension', NS))
+
+    def insert_parameter_if_not_null(self, parameter_name: str,
+                                     parameter_value: Union[str, int]) -> None:
+        if parameter_value is not None:
+            self.parsing_entity.__setattr__(parameter_name, parameter_value)
+
+    def get_xml_leaf_parameter_value(self, parameter_name: str) -> str:
+        return self._get_xml_leaf_parameter_value_with_urify(
+            parameter_name,
+            need_urify=False)
+
+    def get_xml_leaf_parameter_int_value(self, parameter_name: str) -> str:
+        string = self.get_xml_leaf_parameter_value(parameter_name)
+        if string is not None:
+            return int(string)
+
+    def get_xml_leaf_parameter_uri_value(self, parameter_name: str) -> str:
+        return self._get_xml_leaf_parameter_value_with_urify(
+            parameter_name,
+            need_urify=True)
+
+    def _get_xml_leaf_parameter_value_with_urify(self,
+                                                 parameter_name: str,
+                                                 need_urify: bool = False) \
+            -> str:
+        self.check_single_element_in_root(parameter_name)
+        parameter = self.xml_element.find("xspf:" + parameter_name, NS)
+        if parameter is not None:
+            self.__class__.check_inserted_markup(parameter)
+            self.__class__.check_forbidden_element_attributes(parameter)
+            ret_text = parameter.text
+            if need_urify:
+                ret_text = urify(ret_text)
+            return ret_text
+
+    def check_single_element_in_root(self, element_name: str) -> None:
+        if len(self.xml_element.findall("xspf:" + element_name, NS)) > 1:
+            raise TypeError(f"Got too many `{element_name}` elements in "
+                            "playlist.\n"
+                            f"{ET.tostring(self.xml_element)}")
+
+    @staticmethod
+    def check_inserted_markup(element) -> None:
+        if len(list(element)) > 0:
+            raise ValueError("Got nested elements in expected text. "
+                             "Probably, this is unexpected HTML "
+                             "insertion.\n"
+                             f"{ET.tostring(element)}")
+
+    @staticmethod
+    def check_forbidden_element_attributes(element) -> None:
+        if len(element.attrib) > 0 and \
+                element.keys() != \
+                ["{http://www.w3.org/XML/1998/namespace}base"]:
+            raise TypeError("Element contains forbidden attribute "
+                            f"{element.attrib}.\n"
+                            f"{ET.tostring(element)}")
+
+
+class _TrackParser(_Parser):
+    def __init__(self, xml_element: ET.Element):
+        super().__init__(xml_element)
+        self.parsing_entity = Track()
+
+    def parse(self) -> Track:
+        self.check_all_track_element()
+        self.insert_all_parameters()
+        return self.parsing_entity
+
+    def check_all_track_element(self) -> None:
+        self.check_root_name_and_namespace()
+        self.check_track_nonleaf_content()
+
+    def check_root_name_and_namespace(self) -> None:
+        if self.xml_element.tag != ''.join(['{', NS["xspf"], '}track']):
+            raise TypeError("Track element not contain 'track' tag ",
+                            "or namespace setted wrong",
+                            object=self.xml_element)
+
+    def check_track_nonleaf_content(self) -> None:
+        self.__class__.check_element_nonleaf_content(self.xml_element)
+
+    def insert_all_parameters(self):
+        self.insert_locations()
+        self.insert_identifiers()
+        self.insert_title()
+        self.insert_creator()
+        self.insert_annotation()
+        self.insert_info()
+        self.insert_image()
+        self.insert_album()
+        self.insert_trackNum()
+        self.insert_duration()
+        self.insert_links()
+        self.insert_metas()
+        self.insert_extensions()
+
+    def insert_locations(self) -> None:
+        locations = self.xml_element.findall("xspf:location", NS)
+        if len(locations) > 0:
+            self.parsing_entity.location = [
+                urlparse.unquote(urify(location.text.strip()))
+                for location in locations]
+
+    def insert_identifiers(self) -> None:
+        identifiers = self.xml_element.findall("xspf:identifier", NS)
+        if len(identifiers) > 0:
+            self.parsing_entity.identifier = [
+                urlparse.unquote(urify(identifier.text.strip()))
+                for identifier in identifiers]
+
+    def insert_album(self) -> None:
+        album = self.get_xml_leaf_parameter_value('album')
+        self.insert_parameter_if_not_null('album', album)
+
+    def insert_trackNum(self) -> None:
+        trackNum = self.get_xml_leaf_parameter_int_value('trackNum')
+        self.insert_parameter_if_not_null('trackNum', trackNum)
+
+    def insert_duration(self) -> None:
+        duration = self.get_xml_leaf_parameter_int_value('duration')
+        self.insert_parameter_if_not_null('duration', duration)
+
+
+class _PlaylistParser(_Parser):
 
     def __init__(self, xml_element: ET.Element):
-        self.xml_element = xml_element
-        self.playlist = Playlist()
+        super().__init__(xml_element)
+        self.parsing_entity = Playlist()
 
-    def parse(self):
+    def parse(self) -> Playlist:
         self.check_all_in_root_element()
-        #self.insert_name(self.get_xml_name())
+        self.insert_all_parameters()
+        return self.parsing_entity
 
-    def check_all_in_root_element(self):
+    def check_all_in_root_element(self) -> None:
         self.check_namespace_is_exist()
         self.check_for_right_namespace_string()
         self.check_root_tag_name()
         self.check_version_attribute_is_exist()
         self.check_forbidden_root_attributes()
         self.check_value_of_version()
-        self.check_nonleaf_content()
+        self.check_root_nonleaf_content()
 
-    def check_namespace_is_exist(self):
+    def check_namespace_is_exist(self) -> None:
         if not self.xml_element.tag[0] == '{':
             raise TypeError("Playlist namespace attribute is missing.\n"
                             f"{ET.tostring(self.xml_element)}")
 
-    def check_for_right_namespace_string(self):
+    def check_for_right_namespace_string(self) -> None:
         if not self.xml_element.tag.startswith(
                 ''.join(['{', NS["xspf"], '}'])):
             wrong_namespace = self.xml_element.tag.split('}')[0].lstrip('{')
@@ -704,18 +693,18 @@ class _PlaylistParser:
                              f"| Expected `{NS['xspf']}`.\n"
                              f"| Got `{wrong_namespace}`.")
 
-    def check_root_tag_name(self):
+    def check_root_tag_name(self) -> None:
         if self.xml_element.tag != ''.join(['{', NS['xspf'], '}playlist']):
             raise ValueError("Root tag name is not correct.\n"
                              "| Expected: `playlist`.\n"
                              f"| Got: `{self.xml_element.tag.split('}')[1]}`")
 
-    def check_version_attribute_is_exist(self):
+    def check_version_attribute_is_exist(self) -> None:
         # Version attribute check.
         if 'version' not in self.xml_element.keys():
             raise TypeError("version attribute of playlist is missing.")
 
-    def check_forbidden_root_attributes(self):
+    def check_forbidden_root_attributes(self) -> None:
         root_attribs = self.xml_element.keys()
         if not (root_attribs == ['version'] or root_attribs == [
                 'version', '{http://www.w3.org/XML/1998/namespace}base']):
@@ -732,7 +721,7 @@ class _PlaylistParser:
             raise TypeError("<playlist> element contains forbidden elements.\n"
                             f"{forbidden_attributes}")
 
-    def check_value_of_version(self):
+    def check_value_of_version(self) -> None:
         version = int(self.xml_element.get("version"))
         # 0 version not implemented
         if version == 0:
@@ -745,88 +734,62 @@ class _PlaylistParser:
                 f"Your playlist version setted to {version}.\n"
                 "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
 
-    def check_nonleaf_content(self):
-        if self.xml_element.text is not None and \
-                not self.xml_element.text.isspace():
-            raise TypeError("Playlist nonleaf content is not allowed.\n"
-                            f"| Got `{self.xml_element.text}`.")
+    def check_root_nonleaf_content(self) -> None:
+        self.__class__.check_element_nonleaf_content(self.xml_element)
 
-    def insert_name(self, name):
-        self.insert_parameter_if_not_null('name', name)
+    def insert_all_parameters(self) -> None:
+        self.insert_title()
+        self.insert_creator()
+        self.insert_annotation()
+        self.insert_info()
+        self.insert_location()
+        self.insert_identifier()
+        self.insert_image()
+        self.insert_license()
+        self.insert_date()
+        self.insert_attributions()
+        self.insert_links()
+        self.insert_metas()
+        self.insert_extensions()
+        self.insert_trackList()
 
-    def get_xml_name(self) -> str:
-        return self.get_xml_leaf_parameter('name')
+    def insert_location(self) -> None:
+        location = self.get_xml_leaf_parameter_uri_value('location')
+        self.insert_parameter_if_not_null('location', location)
 
-    def insert_parameter_if_not_null(self, parameter_name: str,
-                                     parameter_value: str):
-        if parameter_value is not None:
-            self.playlist.__setattr__(parameter_name, parameter_value)
+    def insert_identifier(self) -> None:
+        identifier = self.get_xml_leaf_parameter_uri_value('identifier')
+        self.insert_parameter_if_not_null('identifier', identifier)
 
-    def get_xml_leaf_parameter_value(self, parameter_name):
-        self.check_single_element_in_root(parameter_name)
-        parameter = self.xml_element.find("xspf:" + parameter_name, NS)
-        if parameter is not None:
-            self.check_inserted_markup(parameter)
-            self.check_forbidden_element_attributes(parameter)
-            return parameter.text
+    def insert_license(self) -> None:
+        license = self.get_xml_leaf_parameter_uri_value('license')
+        self.insert_parameter_if_not_null('license', license)
 
-    def check_single_element_in_root(self, element_name):
-        if len(self.xml_element.findall("xspf:" + element_name, NS)) > 1:
-            raise TypeError(f"Got too many `{element_name}` elements in "
-                            "playlist.\n"
-                            f"{ET.tostring(self.xml_element)}")
+    def insert_date(self) -> None:
+        date_string = self.get_xml_leaf_parameter_value('date')
+        if date_string is not None:
+            date_string = date_string.strip()
+            date_object = datetime.fromisoformat(date_string)
+            self.insert_parameter_if_not_null('date', date_object)
 
-    def check_inserted_markup(self, element):
-        if len(list(element)) > 0:
-            raise ValueError("Got nested elements in expected text. "
-                             "Probably, this is unexpected HTML "
-                             "insertion.\n"
-                             f"{ET.tostring(element)}")
+    def insert_attributions(self) -> None:
+        self.check_single_element_in_root('attribution')
+        attribution = self.xml_element.find("xspf:attribution", NS)
+        if attribution is not None:
+            self.__class__.check_element_nonleaf_content(attribution)
+            self.parsing_entity.attribution.extend(
+                Attribution()._from_element(attr)
+                for attr in attribution)
 
-    def check_forbidden_element_attributes(element):
-        if len(element.attrib) > 0 and \
-                element.keys() != \
-                ["{http://www.w3.org/XML/1998/namespace}base"]:
-            raise TypeError("Element contains forbidden attribute "
-                            f"{element.attrib}.\n"
-                            f"{ET.tostring(element)}")
+    def insert_trackList(self) -> None:
+        self.check_trackList_is_only_one()
+        trackList = self.xml_element.find("xspf:trackList", NS)
+        self.__class__.check_element_nonleaf_content(trackList)
+        self.parsing_entity.trackList.extend(
+            Track._parse_xml(track) for track in trackList)
 
-    def get_simple_element_and_set_attr(root, playlist, attr):
-        params = root.findall("xspf:" + attr, NS)
-        if len(params) == 1:
-            param = params[0]
-            # Check for inserted markup.
-            if len(list(param)) > 0:
-                raise ValueError("Got nested elements in expected text. "
-                                 "Probably, this is unexpected HTML "
-                                 "insertion.\n"
-                                 f"{ET.tostring(param)}")
-            # Chech for forbidden attributes
-            if len(param.attrib) > 0 and \
-                    param.keys() != \
-                    ["{http://www.w3.org/XML/1998/namespace}base"]:
-                raise TypeError("Element contains forbidden attribute "
-                                f"{param.attrib}.\n"
-                                f"{ET.tostring(param)}")
-            playlist.__setattr__(attr, params[0].text)
-        # non-multiple elements of param check
-        elif len(params) > 1:
-            raise TypeError(f"Got too many `{attr}` elements in playlist."
-                            f"{ET.tostring(root)}")
-
-    def get_simple_uri_element_and_set_attr(root, playlist, attr):
-        # non-multiple elements of param check
-        params = root.findall("xspf:" + attr, NS)
-        if len(params) == 1:
-            # Chech for forbidden attributes
-            param = params[0]
-            if len(param.attrib) > 0 and \
-                    param.keys() != \
-                    ["{http://www.w3.org/XML/1998/namespace}base"]:
-                raise TypeError("Element contains forbidden attribute "
-                                f"{param.attrib}.\n"
-                                f"{ET.tostring(param)}")
-            playlist.__setattr__(attr, urify(param.text))
-        elif len(params) > 1:
-            raise TypeError(f"Got too many `{attr}` elements in playlist."
-                            f"{ET.tostring(root)}")
+    def check_trackList_is_only_one(self) -> None:
+        self.check_single_element_in_root('trackList')
+        trackList = self.xml_element.find("xspf:trackList", NS)
+        if trackList is None:
+            raise TypeError("trackList element not founded.")

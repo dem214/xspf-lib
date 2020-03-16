@@ -257,8 +257,7 @@ class Track(XMLAble):
         _Builder().build_track(self, locals())
 
     __slots__ = ('location', 'identifier', 'title', 'creator', 'annotation',
-                 'info', 'image', 'album', 'trackNum', 'duration', 'link',
-                 'meta', 'extension')
+                 'info', 'image', 'album', 'link', 'meta', 'extension')
 
     def __repr__(self) -> str:
         """Return representation `repr(self)`."""
@@ -272,6 +271,38 @@ class Track(XMLAble):
         else:
             repr += '>'
         return repr
+
+    @property
+    def trackNum(self) -> int:
+        print("getter")
+        return self.__trackNum
+
+    @trackNum.setter
+    def trackNum(self, value: int) -> None:
+        print("setter")
+        if value is not None:
+            if value <= 0:
+                raise ValueError("trackNum must be greater than zero.\n"
+                                 "| Expected: {1, 2, ..}\n"
+                                 f"| Got: {value}")
+            self.__trackNum = value
+        else:
+            self.__trackNum = None
+
+    @property
+    def duration(self) -> int:
+        return self.__duration
+
+    @duration.setter
+    def duration(self, value: int) -> None:
+        if value is not None:
+            if value < 0:
+                raise ValueError("duration must be a non negative integer\n"
+                                 "| Expected: {0, 1, 2, ..}\n"
+                                 f"| Got: {value}")
+            self.__duration = value
+        else:
+            self.__duration = None
 
     def to_xml_element(self) -> ET.Element:
         """Create `xml.ElementTree.Element` of the track."""
@@ -441,22 +472,10 @@ class _Builder():
         self.add_simple_parameter('album')
 
     def add_trackNum(self):
-        trackNum = self.parameters['trackNum']
-        if trackNum is not None:
-            if not int(trackNum) > 0:
-                raise ValueError("""trackNum must be greater than zero""")
-            self.entity.trackNum = int(trackNum)
-        else:
-            self.entity.trackNum = None
+        self.add_simple_parameter('trackNum')
 
     def add_duration(self):
-        duration = self.parameters['duration']
-        if duration is not None:
-            if int(duration) < 0:
-                raise ValueError("""duration must be a non negative integer""")
-            self.entity.duration = duration
-        else:
-            self.entity.duration = None
+        self.add_simple_parameter('duration')
 
     def add_link(self):
         self.entity.link = list(self.parameters['link'])

@@ -2,6 +2,7 @@ from xspf_lib import Track, Playlist, Extension, Link, Meta, Attribution
 from xml.etree.ElementTree import Element
 import xml.etree.ElementTree as ET
 from datetime import datetime
+import pytest
 
 
 def test_track_init():
@@ -12,7 +13,7 @@ def test_track_init():
                annotation="comment",
                info="info.example.com",
                album="tr_album",
-               trackNum="1",
+               trackNum=1,
                duration=10,
                link=[Link("link_type", "link_uri")],
                meta=[Meta("meta_type1", "metadata1"),
@@ -99,3 +100,35 @@ def test_aattribution_xml_generator():
         [ET.tostring(el).decode() for el in atr_id.xml_elements()]
     atr_null = Attribution()
     assert len(list(atr_null.xml_elements())) == 0
+
+
+def test_bad_trackNum_creation():
+    with pytest.raises(ValueError):
+        Track(trackNum=-1)
+
+
+def test_bad_trackNum_assigment():
+    tr = Track()
+    with pytest.raises(ValueError):
+        tr.trackNum = -1
+
+
+def test_bad_trackNum_string():
+    with pytest.raises(TypeError):
+        Track(trackNum='1')
+
+
+def test_bad_duration_creation():
+    with pytest.raises(ValueError):
+        Track(duration=-1)
+
+
+def test_bad_duration_assignment():
+    tr = Track()
+    with pytest.raises(ValueError):
+        tr.duration = -1
+
+
+def test_bad_duration_string():
+    with pytest.raises(TypeError):
+        Track(duration='1')

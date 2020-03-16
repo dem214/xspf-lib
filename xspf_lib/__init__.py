@@ -274,12 +274,10 @@ class Track(XMLAble):
 
     @property
     def trackNum(self) -> int:
-        print("getter")
         return self.__trackNum
 
     @trackNum.setter
     def trackNum(self, value: int) -> None:
-        print("setter")
         if value is not None:
             if value <= 0:
                 raise ValueError("trackNum must be greater than zero.\n"

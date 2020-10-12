@@ -14,7 +14,7 @@ __all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI",
 URI = str
 NS = {'xspf': "http://xspf.org/ns/0/"}
 
-ET.register_namespace('xspf', NS['xspf'])
+ET.register_namespace('', NS['xspf'])
 
 
 def quote(value: str) -> str:
@@ -402,7 +402,6 @@ class Playlist(UserList, XMLAble):
                               encoding="UTF-8",
                               method="xml",
                               short_empty_elements=True,
-                              default_namespace=NS["xspf"],
                               xml_declaration=True)
 
     @classmethod

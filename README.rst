@@ -2,7 +2,15 @@
 xspf-lib
 ========
 
+.. image:: https://github.com/dem214/xspf-lib/workflows/Python%20package/badge.svg?branch=master
+    :alt: Python package
+
 Library to work with xspf.
+
+Requirements
+-----------
+
+* `Python 3.8 or higher <https://www.python.org/downloads/>`_
 
 Installing
 ----------

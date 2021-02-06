@@ -8,7 +8,7 @@ xspf-lib
 Library to work with xspf.
 
 Requirements
------------
+------------
 
 * `Python 3.8 or higher <https://www.python.org/downloads/>`_
 

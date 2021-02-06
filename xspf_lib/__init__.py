@@ -18,7 +18,7 @@ ET.register_namespace('', NS['xspf'])
 
 
 def quote(value: str) -> str:
-    return urlparse.quote(value, safe='/:')
+    return value
 
 
 class XMLAble(ABC):
@@ -186,7 +186,7 @@ class Attribution(XMLAble):
         """Create generator of xml representation."""
         if self.location is not None:
             el = ET.Element('location')
-            el.text = str(urlparse.quote(self.location, safe='/:'))
+            el.text = str(quote(self.location))
             yield el
         if self.identifier is not None:
             el = ET.Element('identifier')
@@ -535,7 +535,7 @@ class _XML_Builder:
         if self.entity.location is not None:
             for loc in self.entity.location:
                 ET.SubElement(self.xml_element, 'location').text = \
-                    str(urlparse.quote(loc, safe='/:'))
+                    str(quote(loc))
 
     def add_identifiers(self):
         if self.entity.identifier is not None:

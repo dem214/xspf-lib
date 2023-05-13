@@ -1,63 +1,88 @@
-from xspf_lib import Playlist
-import os
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+from typing import Final
 
-testcase_dir = os.path.join(
-    os.path.dirname(
-        os.path.abspath(__file__)),
-    *['testcase', 'version_1', 'pass'])
+import pytest
 
-os.chdir(testcase_dir)
+from xspf_lib import Playlist
 
-
-def test_playlist_empty_annotation():
-    Playlist.parse("playlist-empty-annotation.xspf")
+TESTCASE_DIR: Final[Path] = Path(__file__).absolute().parent / 'testcase' / 'version_1' / 'pass'
 
 
-def test_playlist_empty_creator():
-    Playlist.parse("playlist-empty-creator.xspf")
+def get_testcase_path(filename: str) -> Path:
+    return TESTCASE_DIR / filename
+
+
+valid_playlists: list[str] = [
+    "playlist-empty-annotation.xspf",
+    "playlist-empty-creator.xspf",
+    "playlist-empty-title.xspf",
+    "playlist-empty-meta.xspf",
+    'playlist-namespace-nondefault.xspf',
+    "playlist-namespace-two-additions.xspf",
+    "playlist-xml-base.xspf",
+    "track-empty-album.xspf",
+    "track-empty-creator.xspf",
+    "track-empty-meta.xspf",
+    "track-empty-title.xspf",
+    "playlist-broken-relative-paths.xspf",
+    "playlist-noturi-attribution-identifier.xspf",
+    "playlist-noturi-attribution-location.xspf",
+    "playlist-noturi-extension.xspf",
+    "playlist-noturi-identifier.xspf",
+    "playlist-noturi-image.xspf",
+    "playlist-noturi-info.xspf",
+    "playlist-noturi-license.xspf",
+    "playlist-noturi-link-content.xspf",
+    "playlist-noturi-link-rel.xspf",
+    "playlist-noturi-location.xspf",
+    "playlist-noturi-meta.xspf",
+    "track-noturi-extension.xspf",
+    "track-noturi-identifier.xspf",
+    "track-noturi-image.xspf",
+    "track-noturi-info.xspf",
+    "track-noturi-link-rel.xspf",
+    "track-noturi-location.xspf",
+    "track-noturi-meta-rel.xspf",
+    'track-whitespace-in-between.xspf',
+]
+
+
+@pytest.mark.parametrize('filename', valid_playlists)
+def test_playlist_parse(filename: str):
+    Playlist.parse(get_testcase_path(filename))
 
 
 def test_track_whitespace_int():
-    pl = Playlist.parse("track-whitespace-nonNegativeInteger.xspf")
+    pl = Playlist.parse(get_testcase_path("track-whitespace-nonNegativeInteger.xspf"))
     for i in range(4):
         assert pl[i].duration == 1
 
 
-def test_playlist_empty_title():
-    Playlist.parse("playlist-empty-title.xspf")
-
-
-def test_playlist_empty_meta():
-    Playlist.parse("playlist-empty-meta.xspf")
-
-
 def test_playlist_extension():
-    pl = Playlist.parse("playlist-extension.xspf")
-    assert pl.extension[0].application == \
-        "http://localhost/some/valid/url"
-    # TODO: assert something
+    pl = Playlist.parse(get_testcase_path("playlist-extension.xspf"))
+    assert pl.extension[0].application == "http://localhost/some/valid/url"
 
 
 def test_playlist_extensive():
-    pl = Playlist.parse("playlist-extensive.xspf")
+    pl = Playlist.parse(get_testcase_path("playlist-extensive.xspf"))
     assert pl.title == "My playlist"
     assert pl.creator == "Jane Doe"
     assert pl.annotation == "My favorite songs"
     assert pl.info == "http://example.com/myplaylists"
     assert pl.location == "http://example.com/myplaylists/myplaylist"
-    assert pl.identifier == \
-        "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
+    assert pl.identifier == "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
     assert pl.image == "http://example.com/img/mypicture"
-    assert pl.date == datetime(2005, 1, 8, 17, 10, 47,
-                               tzinfo=timezone(timedelta(hours=-5)))
+    assert pl.date == datetime(
+        2005, 1, 8, 17, 10, 47,
+        tzinfo=timezone(timedelta(hours=-5))
+    )
     assert pl.license == "http://creativecommons.org/licenses/by/1.0/"
     assert len(pl.attribution) == 2
     assert pl.attribution[0].identifier == "http://bar.com/secondderived.xspf"
     assert pl.attribution[1].location == "http://foo.com/original.xspf"
     assert pl.link[0].rel == "http://foaf.example.org/namespace/version1"
-    assert pl.link[0].content == \
-        "http://socialnetwork.example.org/foaf/mary.rdfs"
+    assert pl.link[0].content == "http://socialnetwork.example.org/foaf/mary.rdfs"
     assert len(pl.link) == 1
     assert pl.meta[0].rel == "http://example.org/key"
     assert pl.meta[0].content == "value"
@@ -69,7 +94,7 @@ def test_playlist_extensive():
 
 
 def test_playlist_inverted_order():
-    pl = Playlist.parse("playlist-inverted-order.xspf")
+    pl = Playlist.parse(get_testcase_path("playlist-inverted-order.xspf"))
     assert pl.title == "some text"
     assert pl.creator == "some text"
     assert pl.annotation == "some text"
@@ -93,20 +118,12 @@ def test_playlist_inverted_order():
 
 
 def test_playlist_namespace_nested_proper():
-    pl = Playlist.parse('playlist-namespace-nested-proper.xspf')
+    pl = Playlist.parse(get_testcase_path('playlist-namespace-nested-proper.xspf'))
     assert pl.extension[0].application == "http://example.com/"
 
 
-def test_playlist_namespace_nondefault():
-    Playlist.parse('playlist-namespace-nondefault.xspf')
-
-
-def test_playlist_namespace_two_additions():
-    Playlist.parse("playlist-namespace-two-additions.xspf")
-
-
 def test_playlist_relative_paths():
-    pl = Playlist.parse("playlist-relative-paths.xspf")
+    pl = Playlist.parse(get_testcase_path("playlist-relative-paths.xspf"))
     assert pl[0].location[0] == "../01-Ain't Mine.flac"
     assert pl[0].title == "Ain't Mine"
     assert pl[1].location[0] == "02-Solitude over the River.flac"
@@ -116,45 +133,24 @@ def test_playlist_relative_paths():
 
 
 def test_playlist_whitespace_dateTime():
-    pl = Playlist.parse("playlist-whitespace-dateTime.xspf")
+    pl = Playlist.parse(get_testcase_path("playlist-whitespace-dateTime.xspf"))
     assert pl.date == datetime(2005, 1, 8, 17, 10, 47,
                                tzinfo=timezone(timedelta(hours=-5)))
 
 
-def test_playlist_xml_base():
-    Playlist.parse("playlist-xml-base.xspf")
-
-
-def test_track_empty_album():
-    Playlist.parse("track-empty-album.xspf")
-
-
-def test_track_empty_annotation():
-    Playlist.parse("track-empty-creator.xspf")
-
-
-def test_track_empty_meta():
-    Playlist.parse("track-empty-meta.xspf")
-
-
-def test_track_empty_title():
-    Playlist.parse("track-empty-title.xspf")
-
-
 def test_track_extension():
-    tr = Playlist.parse("track-extension.xspf")[0]
+    tr = Playlist.parse(get_testcase_path("track-extension.xspf"))[0]
     assert tr.extension[0].application == "http://localhost/some/valid/url"
     assert len(tr.extension) == 1
     assert len(tr.extension[0].content) == 2
 
 
 def test_track_extensive():
-    tr = Playlist.parse("track-extensive.xspf")[0]
+    tr = Playlist.parse(get_testcase_path("track-extensive.xspf"))[0]
     assert len(tr.location) == 1
     assert tr.location[0] == "http://example.com/my.mp3"
     assert len(tr.identifier) == 1
-    assert tr.identifier[0] == \
-        "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
+    assert tr.identifier[0] == "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
     assert tr.title == "My Way"
     assert tr.creator == "Frank Sinatra"
     assert tr.annotation == "This is my theme song."
@@ -174,7 +170,7 @@ def test_track_extensive():
 
 
 def test_track_inverted_order():
-    tr = Playlist.parse("track-inverted-order.xspf")[0]
+    tr = Playlist.parse(get_testcase_path("track-inverted-order.xspf"))[0]
     assert len(tr.location) == 1
     assert tr.location[0] == "http://example.com/"
     assert len(tr.identifier) == 1
@@ -198,7 +194,7 @@ def test_track_inverted_order():
 
 
 def test_track_whitespace_anyURI():
-    tr = Playlist.parse("track-whitespace-anyURI.xspf")[0]
+    tr = Playlist.parse(get_testcase_path("track-whitespace-anyURI.xspf"))[0]
     assert len(tr.location) == 4
     assert tr.location[0] == "http://example.com/no_whitespace/"
     assert tr.location[1] == "http://example.com/whitespace_before/"
@@ -207,7 +203,7 @@ def test_track_whitespace_anyURI():
 
 
 def test_track_whitespace_nonNegativeInteger():
-    pl = Playlist.parse("track-whitespace-nonNegativeInteger.xspf")
+    pl = Playlist.parse(get_testcase_path("track-whitespace-nonNegativeInteger.xspf"))
     assert len(pl) == 4
     for tr in pl:
         assert tr.duration == 1

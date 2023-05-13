@@ -130,3 +130,5 @@ dmypy.json
 
 # Visual Studio Code garbage
 .vscode/
+
+.idea/

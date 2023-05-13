@@ -372,7 +372,7 @@ class Playlist(UserList, XMLAble):
         self.image = image
         self.date = datetime.now(timezone.utc).astimezone()
         self.license = license
-        self.attribution = attribution
+        self.attribution = list(attribution)
         self.link = list(link)
         self.meta = list(meta)
         self.extension = list(extension)

@@ -16,6 +16,11 @@ repos:
     rev: 23.3.0
     hooks:
       - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
   - repo: local
     hooks:
       - id: pytest
@@ -23,3 +28,4 @@ repos:
         language: python
         types: [python]
         entry: pytest
+        pass_filenames: false

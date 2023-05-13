@@ -1,10 +1,12 @@
 import os
-
-from xspf_lib import Track, Playlist, Extension, Link, Meta, Attribution
-from xml.etree.ElementTree import Element
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from xml.etree.ElementTree import Element
+
 import pytest
+
+from xspf_lib import Attribution, Extension, Link, Meta, Playlist
+from xspf_lib.elements import Track
 
 
 def test_track_init():

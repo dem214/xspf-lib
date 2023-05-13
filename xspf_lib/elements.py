@@ -1,8 +1,7 @@
 from collections import UserList
-from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, Iterator, List, Optional, Union
 from urllib import parse as urlparse
 from xml.etree import ElementTree as Et
 

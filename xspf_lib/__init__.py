@@ -21,6 +21,14 @@ def quote(value: str) -> str:
     return value
 
 
+def quoteInvalidChars(value: str) -> str:   # introduced by @gdalik
+    _value = ''
+    for char in value:
+        _char = char if char in _Parser.uric else urlparse.quote(char)
+        _value += _char
+    return _value
+
+
 class XMLAble(ABC):
 
     @abstractmethod
@@ -279,8 +287,8 @@ class Track(XMLAble):
     @trackNum.setter
     def trackNum(self, value: int) -> None:
         if value is not None:
-            if value <= 0:
-                raise ValueError("trackNum must be greater than zero.\n"
+            if value < 0:   # modified by @gdalik in order to include trackNum == 0
+                raise ValueError("trackNum must be positive number.\n"
                                  "| Expected: {1, 2, ..}\n"
                                  f"| Got: {value}")
             self.__trackNum = value
@@ -633,6 +641,7 @@ class _Parser():
 
     @staticmethod
     def urify(value):
+        value = quoteInvalidChars(value)    # introduced by @gdalik
         if all(char in _Parser.uric for char in value):
             return value
         else:

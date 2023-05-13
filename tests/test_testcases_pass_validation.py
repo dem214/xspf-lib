@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Final, List
+from typing import List
 
 import pytest
 
 from xspf_lib import Playlist
 
-TESTCASE_DIR: Final[Path] = (
+TESTCASE_DIR: Path = (
     Path(__file__).absolute().parent / "testcase" / "version_1" / "pass"
 )
 

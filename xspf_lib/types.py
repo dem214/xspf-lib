@@ -1,5 +1,4 @@
-from collections.abc import Iterable
-from typing import Generic, TypeVar, Union
+from typing import TypeVar
 
 URI = str
 

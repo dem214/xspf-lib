@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import Final
 
 import pytest
 
 from xspf_lib import Link, Meta, Playlist
 
-TESTCASE_DIR: Final[Path] = (
+TESTCASE_DIR: Path = (
     Path(__file__).absolute().parent / "testcase" / "version_1" / "fail"
 )
 

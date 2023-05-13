@@ -2,7 +2,7 @@
 
 <!--
   Description: The "version" attribute for the playlist element must be 0 or 1.
-  Expect:      
+  Expect:
 -->
 
 <playlist version="25" xmlns="http://xspf.org/ns/0/">

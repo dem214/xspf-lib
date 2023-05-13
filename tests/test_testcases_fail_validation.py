@@ -4,7 +4,9 @@ from typing import Final
 from xspf_lib import Playlist, Link, Meta
 import pytest
 
-TESTCASE_DIR: Final[Path] = Path(__file__).absolute().parent / 'testcase' / 'version_1' / 'fail'
+TESTCASE_DIR: Final[Path] = (
+    Path(__file__).absolute().parent / "testcase" / "version_1" / "fail"
+)
 
 
 def get_testcase_path(filename):
@@ -12,8 +14,8 @@ def get_testcase_path(filename):
 
 
 failed_templates = [
-    ('playlist-attribute-forbidden-annotation.xspf', TypeError),
-    ('playlist-attribute-forbidden-playlist.xspf', TypeError),
+    ("playlist-attribute-forbidden-annotation.xspf", TypeError),
+    ("playlist-attribute-forbidden-playlist.xspf", TypeError),
     ("playlist-baddate.xspf", ValueError),
     ("playlist-badversion.xspf", ValueError),
     ("playlist-element-forbidden-attribution.xspf", TypeError),
@@ -43,8 +45,8 @@ failed_templates = [
     ("playlist-toomany-location.xspf", TypeError),
     ("playlist-toomany-title.xspf", TypeError),
     ("playlist-toomany-tracklist.xspf", TypeError),
-    ('track-badint-duration.xspf', ValueError),
-    ('track-badint-tracknum.xspf', ValueError),
+    ("track-badint-duration.xspf", ValueError),
+    ("track-badint-tracknum.xspf", ValueError),
     ("track-extension-application-missing.xspf", TypeError),
     ("track-link-rel-missing.xspf", TypeError),
     ("track-markup-album.xspf", ValueError),
@@ -65,7 +67,7 @@ failed_templates = [
 ]
 
 
-@pytest.mark.parametrize('filename,exc', failed_templates)
+@pytest.mark.parametrize("filename,exc", failed_templates)
 def test_corrupted_playlist(filename: str, exc: Exception):
     with pytest.raises(exc):
         Playlist.parse(get_testcase_path(filename))

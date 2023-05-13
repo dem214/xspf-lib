@@ -30,7 +30,7 @@
 
   <!-- Creation date (not last-modified date) of the playlist, formatted as a XML schema dateTime. xspf:playlist elements MAY contain exactly one. -->
   <date>2005-01-08T17:10:47-05:00</date>
-  
+
   <!-- URL of a resource that describes the license under which this playlist was released.  xspf:playlist elements may contain zero or one license element. -->
   <license>http://creativecommons.org/licenses/by/1.0/</license>
 

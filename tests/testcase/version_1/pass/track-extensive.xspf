@@ -43,10 +43,10 @@
 
       <!-- The link element allows non-XSPF web resources to be included in xspf:track elements without breaking XSPF validation. -->
       <link rel="http://foaf.org/namespace/version1">http://socialnetwork.org/foaf/mary.rdfs</link>
-      
+
       <!-- The meta element allows non-XSPF metadata to be included in xspf:track elements without breaking XSPF validation. -->
       <meta rel="http://example.org/key">value</meta>
-                                        
+
       <!-- The extension element allows non-XSPF XML to be included in XSPF documents without breaking XSPF validation. The purpose is to allow nested XML, which the meta and link elements do not. xspf:playlist elements MAY contain zero or more extension elements. -->
       <extension application="http://example.com">
         <clip start="25000" end="34500"/>

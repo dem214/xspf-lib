@@ -2,7 +2,7 @@
 
 <!--
   Description: Element must not contain HTML
-  Expect:      ContainsHTML{element:creator,parent:playlist} 
+  Expect:      ContainsHTML{element:creator,parent:playlist}
 -->
 
 <playlist version="1" xmlns="http://xspf.org/ns/0/">

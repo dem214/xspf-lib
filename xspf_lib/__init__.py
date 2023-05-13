@@ -1,28 +1,27 @@
 """Module helps to work with xspf playlists."""
 
 import xml.etree.ElementTree as ET
-from typing import Iterable, Optional, Union, Dict
+from typing import Iterable, Optional, Union, Dict, Any
 from datetime import datetime, timezone
 from collections import UserList
 import urllib.parse as urlparse
 from dataclasses import dataclass
 from abc import ABC, abstractmethod, abstractstaticmethod
 
-__all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI",
-           "Attribution"]
+__all__ = ["Playlist", "Track", "Extension", "Link", "Meta", "URI", "Attribution"]
 
 URI = str
-NS = {'xspf': "http://xspf.org/ns/0/"}
+NS = {"xspf": "http://xspf.org/ns/0/"}
 
-ET.register_namespace('', NS['xspf'])
+ET.register_namespace("", NS["xspf"])
 
 
 def quote(value: str) -> str:
     return value
 
 
-def quoteInvalidChars(value: str) -> str:   # introduced by @gdalik
-    _value = ''
+def quoteInvalidChars(value: str) -> str:  # introduced by @gdalik
+    _value = ""
     for char in value:
         _char = char if char in _Parser.uric else urlparse.quote(char)
         _value += _char
@@ -30,7 +29,6 @@ def quoteInvalidChars(value: str) -> str:   # introduced by @gdalik
 
 
 class XMLAble(ABC):
-
     @abstractmethod
     def to_xml_element(self) -> ET.Element:
         pass
@@ -43,11 +41,14 @@ class XMLAble(ABC):
 class Extension(XMLAble):
     """Class for XML extensions of XSPF playlists and tracks."""
 
-    __slots__ = ['application', 'extra_attrib', 'content']
+    __slots__ = ["application", "extra_attrib", "content"]
 
-    def __init__(self, application: URI,
-                 extra_attrib: Dict[str, str] = {},
-                 content: Iterable[ET.Element] = []) -> None:
+    def __init__(
+        self,
+        application: URI,
+        extra_attrib: Dict[str, str] = {},
+        content: Iterable[ET.Element] = [],
+    ) -> None:
         """Create Extension for xspf_lib.Track and xspf_lib.Playlist.
 
         Extension must have attribute `application` URI wich point to
@@ -68,24 +69,23 @@ class Extension(XMLAble):
 
     def to_xml_element(self) -> ET.Element:
         """Extention to `xml.etree.ElementTree.Element` conversion."""
-        el = ET.Element('extension',
-                        attrib={'application': self.application,
-                                **self.extra_attrib},)
+        el = ET.Element(
+            "extension",
+            attrib={"application": self.application, **self.extra_attrib},
+        )
         el.extend(self.content)
         return el
 
     @staticmethod
-    def parse_from_xml_element(element: ET.Element) -> 'Extension':
+    def parse_from_xml_element(element: ET.Element) -> "Extension":
         """`xml.etree.ElementTree.Element` to Extension coversion."""
         application = _Parser.urify(element.get("application"))
         if application is None:
-            raise TypeError(
-                "Extension parsing missing attribute `application`")
-        attribs = dict(
-            [item for item in element.items() if item[0] != "application"])
-        return Extension(application=application,
-                         extra_attrib=attribs,
-                         content=list(element))
+            raise TypeError("Extension parsing missing attribute `application`")
+        attribs = dict([item for item in element.items() if item[0] != "application"])
+        return Extension(
+            application=application, extra_attrib=attribs, content=list(element)
+        )
 
 
 @dataclass
@@ -101,18 +101,19 @@ class Link(XMLAble):
     """
 
     rel: URI
-    content: URI = ''
+    content: URI = ""
 
     @staticmethod
     def parse_from_xml_element(element):
-        rel = _Parser.urify(element.get('rel'))
+        rel = _Parser.urify(element.get("rel"))
         if rel is None:
-            raise TypeError("`rel` attribute of link is missing\n"
-                            f"{ET.tostring(element)}")
+            raise TypeError(
+                "`rel` attribute of link is missing\n" f"{ET.tostring(element)}"
+            )
         return Link(rel=rel, content=_Parser.urify(element.text))
 
     def to_xml_element(self) -> ET.Element:
-        el = ET.Element('link', {'rel': str(self.rel)})
+        el = ET.Element("link", {"rel": str(self.rel)})
         el.text = str(self.content)
         return el
 
@@ -129,23 +130,26 @@ class Meta(XMLAble):
     """
 
     rel: URI
-    content: str = ''
+    content: str = ""
 
     @staticmethod
     def parse_from_xml_element(element):
         # Check for markup.
         if len(list(element)) > 0:
-            raise ValueError("Got nested elements in expected text. "
-                             "Probably, this is unexpected HTML insertion.\n"
-                             f"{ET.tostring(element)}")
-        rel = _Parser.urify(element.get('rel'))
+            raise ValueError(
+                "Got nested elements in expected text. "
+                "Probably, this is unexpected HTML insertion.\n"
+                f"{ET.tostring(element)}"
+            )
+        rel = _Parser.urify(element.get("rel"))
         if rel is None:
-            raise TypeError("`rel` attribute of meta is missing\n"
-                            f"{ET.tostring(element)}")
+            raise TypeError(
+                "`rel` attribute of meta is missing\n" f"{ET.tostring(element)}"
+            )
         return Meta(rel=rel, content=element.text)
 
     def to_xml_element(self) -> ET.Element:
-        el = ET.Element('meta', {'rel': str(self.rel)})
+        el = ET.Element("meta", {"rel": str(self.rel)})
         el.text = str(self.content)
         return el
 
@@ -156,10 +160,11 @@ class Attribution(XMLAble):
     Can contain `location` attribute or `identifier` atribute or both.
     """
 
-    __slots__ = ['location', 'identifier']
+    __slots__ = ["location", "identifier"]
 
-    def __init__(self, location: Optional[URI] = None,
-                 identifier: Optional[URI] = None):
+    def __init__(
+        self, location: Optional[URI] = None, identifier: Optional[URI] = None
+    ):
         """Create new attribution.
 
         Generate representation of `Attribution` element of
@@ -184,7 +189,7 @@ class Attribution(XMLAble):
         if self.location is not None:
             resp += f"location={self.location}"
             if self.identifier is not None:
-                resp += ', '
+                resp += ", "
         if self.identifier is not None:
             resp += f"identifier={self.identifier}"
         resp += "}>"
@@ -193,49 +198,54 @@ class Attribution(XMLAble):
     def xml_elements(self):
         """Create generator of xml representation."""
         if self.location is not None:
-            el = ET.Element('location')
+            el = ET.Element("location")
             el.text = str(quote(self.location))
             yield el
         if self.identifier is not None:
-            el = ET.Element('identifier')
+            el = ET.Element("identifier")
             el.text = str(self.identifier)
             yield el
 
     def to_xml_element(self) -> ET.Element:
-        return ET.Element('attribution').extend(self.xml_elements)
+        return ET.Element("attribution").extend(self.xml_elements)
 
     @staticmethod
-    def parse_from_xml_element(element) -> 'Attribution':
-        if element.tag == ''.join(['{', NS['xspf'], '}location']):
+    def parse_from_xml_element(element) -> "Attribution":
+        if element.tag == "".join(["{", NS["xspf"], "}location"]):
             return Attribution(
-                location=urlparse.unquote(_Parser.urify(element.text.strip())))
-        elif element.tag == ''.join(['{', NS['xspf'], '}identifier']):
+                location=urlparse.unquote(_Parser.urify(element.text.strip()))
+            )
+        elif element.tag == "".join(["{", NS["xspf"], "}identifier"]):
             return Attribution(identifier=_Parser.urify(element.text))
         else:
             # No `location` and `identifier` attribution is not allowed
-            raise TypeError("Forbidden element in attribution.\n"
-                            "Only `location` and `identifier` is "
-                            "allowed.\n"
-                            f"Got {ET.tostring(element)}.")
+            raise TypeError(
+                "Forbidden element in attribution.\n"
+                "Only `location` and `identifier` is "
+                "allowed.\n"
+                f"Got {ET.tostring(element)}."
+            )
 
 
 class Track(XMLAble):
     """Track info class."""
 
-    def __init__(self,
-                 location: Union[Iterable[URI], URI, None] = None,
-                 identifier: Union[Iterable[URI], URI, None] = None,
-                 title: Optional[str] = None,
-                 creator: Optional[str] = None,
-                 annotation: Optional[str] = None,
-                 info: Optional[URI] = None,
-                 image: Optional[URI] = None,
-                 album: Optional[str] = None,
-                 trackNum: Optional[int] = None,
-                 duration: Optional[int] = None,
-                 link: Iterable[Link] = [],
-                 meta: Iterable[Meta] = [],
-                 extension: Iterable[Extension] = []) -> None:
+    def __init__(
+        self,
+        location: Union[Iterable[URI], URI, None] = None,
+        identifier: Union[Iterable[URI], URI, None] = None,
+        title: Optional[str] = None,
+        creator: Optional[str] = None,
+        annotation: Optional[str] = None,
+        info: Optional[URI] = None,
+        image: Optional[URI] = None,
+        album: Optional[str] = None,
+        trackNum: Optional[int] = None,
+        duration: Optional[int] = None,
+        link: Iterable[Link] = [],
+        meta: Iterable[Meta] = [],
+        extension: Iterable[Extension] = [],
+    ) -> None:
         """Track info class.
 
         Generate instances of tracks, ready to be put in Playlist class.
@@ -264,8 +274,19 @@ class Track(XMLAble):
         """
         _Builder().build_track(self, locals())
 
-    __slots__ = ('location', 'identifier', 'title', 'creator', 'annotation',
-                 'info', 'image', 'album', 'link', 'meta', 'extension')
+    __slots__ = (
+        "location",
+        "identifier",
+        "title",
+        "creator",
+        "annotation",
+        "info",
+        "image",
+        "album",
+        "link",
+        "meta",
+        "extension",
+    )
 
     def __repr__(self) -> str:
         """Return representation `repr(self)`."""
@@ -277,7 +298,7 @@ class Track(XMLAble):
         if self.location is not None:
             repr += f' at "{self.location[0]}">'
         else:
-            repr += '>'
+            repr += ">"
         return repr
 
     @property
@@ -287,10 +308,12 @@ class Track(XMLAble):
     @trackNum.setter
     def trackNum(self, value: int) -> None:
         if value is not None:
-            if value < 0:   # modified by @gdalik in order to include trackNum == 0
-                raise ValueError("trackNum must be positive number.\n"
-                                 "| Expected: {1, 2, ..}\n"
-                                 f"| Got: {value}")
+            if value < 0:  # modified by @gdalik in order to include trackNum == 0
+                raise ValueError(
+                    "trackNum must be positive number.\n"
+                    "| Expected: {1, 2, ..}\n"
+                    f"| Got: {value}"
+                )
             self.__trackNum = value
         else:
             self.__trackNum = None
@@ -303,9 +326,11 @@ class Track(XMLAble):
     def duration(self, value: int) -> None:
         if value is not None:
             if value < 0:
-                raise ValueError("duration must be a non negative integer\n"
-                                 "| Expected: {0, 1, 2, ..}\n"
-                                 f"| Got: {value}")
+                raise ValueError(
+                    "duration must be a non negative integer\n"
+                    "| Expected: {0, 1, 2, ..}\n"
+                    f"| Got: {value}"
+                )
             self.__duration = value
         else:
             self.__duration = None
@@ -319,27 +344,29 @@ class Track(XMLAble):
         return ET.tostring(self.to_xml_element(), encoding="UTF-8").decode()
 
     @staticmethod
-    def parse_from_xml_element(element) -> 'Track':
+    def parse_from_xml_element(element) -> "Track":
         return _TrackParser(element).parse()
 
 
 class Playlist(UserList, XMLAble):
     """Playlist info class."""
 
-    def __init__(self,
-                 title: Optional[str] = None,
-                 creator: Optional[str] = None,
-                 annotation: Optional[str] = None,
-                 info: Optional[URI] = None,
-                 location: Optional[URI] = None,
-                 identifier: Optional[URI] = None,
-                 image: Optional[URI] = None,
-                 license: Optional[URI] = None,
-                 attribution: Iterable[Union['Playlist', Attribution]] = [],
-                 link: Iterable[Link] = [],
-                 meta: Iterable[Meta] = [],
-                 extension: Iterable[Extension] = [],
-                 trackList: Iterable[Track] = []) -> None:
+    def __init__(
+        self,
+        title: Optional[str] = None,
+        creator: Optional[str] = None,
+        annotation: Optional[str] = None,
+        info: Optional[URI] = None,
+        location: Optional[URI] = None,
+        identifier: Optional[URI] = None,
+        image: Optional[URI] = None,
+        license: Optional[URI] = None,
+        attribution: Iterable[Union["Playlist", Attribution]] = [],
+        link: Iterable[Link] = [],
+        meta: Iterable[Meta] = [],
+        extension: Iterable[Extension] = [],
+        trackList: Iterable[Track] = [],
+    ) -> None:
         """
         Playlist info class.
 
@@ -388,7 +415,7 @@ class Playlist(UserList, XMLAble):
         repr = "<Playlist"
         if self.title is not None:
             repr += f' "{self.title}"'
-        repr += f': {len(self.trackList)} tracks>'
+        repr += f": {len(self.trackList)} tracks>"
         return repr
 
     def to_xml_element(self) -> ET.Element:
@@ -406,26 +433,28 @@ class Playlist(UserList, XMLAble):
 
     def write(self, file_or_filename, encoding="utf-8") -> None:
         """Write playlist into file."""
-        self.xml_eltree.write(file_or_filename,
-                              encoding="UTF-8",
-                              method="xml",
-                              short_empty_elements=True,
-                              xml_declaration=True)
+        self.xml_eltree.write(
+            file_or_filename,
+            encoding="UTF-8",
+            method="xml",
+            short_empty_elements=True,
+            xml_declaration=True,
+        )
 
     @classmethod
-    def parse(cls, filename) -> 'Playlist':
+    def parse(cls, filename) -> "Playlist":
         """Parse XSPF file into `xspf_lib.Playlist` entity."""
         return cls.parse_from_xml_element(ET.parse(filename).getroot())
 
     @staticmethod
-    def parse_from_xml_element(root) -> 'Playlist':
+    def parse_from_xml_element(root) -> "Playlist":
         return _PlaylistParser(root).parse()
 
     def _to_attribution(self) -> Attribution:
         return Attribution(location=self.location, identifier=self.identifier)
 
 
-class _Builder():
+class _Builder:
     def build_track(self, entity, parameters: Dict):
         self.entity = entity
         self.parameters = parameters
@@ -447,53 +476,52 @@ class _Builder():
         return self.entity
 
     def add_location(self):
-        if isinstance(self.parameters['location'], URI):
-            self.entity.location = [self.parameters['location']]
+        if isinstance(self.parameters["location"], URI):
+            self.entity.location = [self.parameters["location"]]
         else:
-            self.entity.location = self.parameters['location']
+            self.entity.location = self.parameters["location"]
 
     def add_identifier(self):
-        if isinstance(self.parameters['identifier'], URI):
-            self.entity.identifier = [self.parameters['identifier']]
+        if isinstance(self.parameters["identifier"], URI):
+            self.entity.identifier = [self.parameters["identifier"]]
         else:
-            self.entity.identifier = self.parameters['identifier']
+            self.entity.identifier = self.parameters["identifier"]
 
     def add_title(self):
-        self.add_simple_parameter('title')
+        self.add_simple_parameter("title")
 
     def add_creator(self):
-        self.add_simple_parameter('creator')
+        self.add_simple_parameter("creator")
 
     def add_annotation(self):
-        self.add_simple_parameter('annotation')
+        self.add_simple_parameter("annotation")
 
     def add_info(self):
-        self.add_simple_parameter('info')
+        self.add_simple_parameter("info")
 
     def add_image(self):
-        self.add_simple_parameter('image')
+        self.add_simple_parameter("image")
 
     def add_album(self):
-        self.add_simple_parameter('album')
+        self.add_simple_parameter("album")
 
     def add_trackNum(self):
-        self.add_simple_parameter('trackNum')
+        self.add_simple_parameter("trackNum")
 
     def add_duration(self):
-        self.add_simple_parameter('duration')
+        self.add_simple_parameter("duration")
 
     def add_link(self):
-        self.entity.link = list(self.parameters['link'])
+        self.entity.link = list(self.parameters["link"])
 
     def add_meta(self):
-        self.entity.meta = list(self.parameters['meta'])
+        self.entity.meta = list(self.parameters["meta"])
 
     def add_extension(self):
-        self.entity.extension = list(self.parameters['extension'])
+        self.entity.extension = list(self.parameters["extension"])
 
     def add_simple_parameter(self, parameter_name: str):
-        self.entity.__setattr__(parameter_name,
-                                self.parameters[parameter_name])
+        self.entity.__setattr__(parameter_name, self.parameters[parameter_name])
 
 
 class _XML_Builder:
@@ -501,7 +529,7 @@ class _XML_Builder:
         self.entity = entity
 
     def build_track(self):
-        self.xml_element = ET.Element('track')
+        self.xml_element = ET.Element("track")
 
         self.add_locations()
         self.add_identifiers()
@@ -520,8 +548,7 @@ class _XML_Builder:
         return self.xml_element
 
     def build_playlist(self):
-        self.xml_element = ET.Element('playlist', {'version': "1",
-                                      'xmlns': NS['xspf']})
+        self.xml_element = ET.Element("playlist", {"version": "1", "xmlns": NS["xspf"]})
         self.add_title()
         self.add_creator()
         self.add_annotation()
@@ -542,164 +569,165 @@ class _XML_Builder:
     def add_locations(self):
         if self.entity.location is not None:
             for loc in self.entity.location:
-                ET.SubElement(self.xml_element, 'location').text = \
-                    str(quote(loc))
+                ET.SubElement(self.xml_element, "location").text = str(quote(loc))
 
     def add_identifiers(self):
         if self.entity.identifier is not None:
             for id in self.entity.identifier:
-                ET.SubElement(self.xml_element, 'identifier').text = str(id)
+                ET.SubElement(self.xml_element, "identifier").text = str(id)
 
     def add_license(self):
-        self.add_simple_subelement('license')
+        self.add_simple_subelement("license")
 
     def add_attribution(self):
         if len(self.entity.attribution) > 0:
-            attribution = ET.SubElement(self.xml_element, 'attribution')
+            attribution = ET.SubElement(self.xml_element, "attribution")
             for attr in self.entity.attribution[0:9]:
                 if attr.location is not None:
-                    ET.SubElement(attribution, 'location').text = attr.location
+                    ET.SubElement(attribution, "location").text = attr.location
                 if attr.identifier is not None:
-                    ET.SubElement(attribution, 'identifier').text = \
-                        attr.identifier
+                    ET.SubElement(attribution, "identifier").text = attr.identifier
 
     def add_trackList(self):
-        ET.SubElement(self.xml_element, 'trackList').extend(
+        ET.SubElement(self.xml_element, "trackList").extend(
             track.to_xml_element() for track in self.entity.trackList
         )
 
     def add_title(self):
-        self.add_simple_subelement('title')
+        self.add_simple_subelement("title")
 
     def add_creator(self):
-        self.add_simple_subelement('creator')
+        self.add_simple_subelement("creator")
 
     def add_annotation(self):
-        self.add_simple_subelement('annotation')
+        self.add_simple_subelement("annotation")
 
     def add_info(self):
-        self.add_simple_subelement('info')
+        self.add_simple_subelement("info")
 
     def add_image(self):
-        self.add_simple_subelement('image')
+        self.add_simple_subelement("image")
 
     def add_album(self):
-        self.add_simple_subelement('album')
+        self.add_simple_subelement("album")
 
     def add_trackNum(self):
-        self.add_simple_subelement('trackNum')
+        self.add_simple_subelement("trackNum")
 
     def add_duration(self):
-        self.add_simple_subelement('duration')
+        self.add_simple_subelement("duration")
 
     def add_links(self):
-        self.add_iterable_parameter('link')
+        self.add_iterable_parameter("link")
 
     def add_metas(self):
-        self.add_iterable_parameter('meta')
+        self.add_iterable_parameter("meta")
 
     def add_extensions(self):
-        self.add_iterable_parameter('extension')
+        self.add_iterable_parameter("extension")
 
     def add_location(self):
-        self.add_simple_subelement('location')
+        self.add_simple_subelement("location")
 
     def add_identifier(self):
-        self.add_simple_subelement('identifier')
+        self.add_simple_subelement("identifier")
 
     def add_date(self):
-        ET.SubElement(self.xml_element, 'date').text = \
-            self.entity.date.isoformat()
+        ET.SubElement(self.xml_element, "date").text = self.entity.date.isoformat()
 
     def add_simple_subelement(self, parameter_name: str):
         parameter = getattr(self.entity, parameter_name, None)
         if parameter is not None:
-            ET.SubElement(self.xml_element, parameter_name).text = \
-                str(parameter)
+            ET.SubElement(self.xml_element, parameter_name).text = str(parameter)
 
     def add_iterable_parameter(self, parameter_name: str):
         parameter_iter: iter[XMLAble] = getattr(self.entity, parameter_name)
-        self.xml_element.extend(parameter.to_xml_element()
-                                for parameter in parameter_iter)
+        self.xml_element.extend(
+            parameter.to_xml_element() for parameter in parameter_iter
+        )
 
 
-class _Parser():
+class _Parser:
     def __init__(self, xml_element):
         self.xml_element = xml_element
 
     # URI checker By RFC 3986
-    lowalpha = 'abcdefghijklmnopqrstuvwxyz'
-    upalpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    lowalpha = "abcdefghijklmnopqrstuvwxyz"
+    upalpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     alpha = lowalpha + upalpha
-    digit = '0123456789'
-    unreserved = alpha + digit + '-._~'
-    gen_delims = ':/?#[]@'
-    sub_delims = '!$&\'()*+,;='
+    digit = "0123456789"
+    unreserved = alpha + digit + "-._~"
+    gen_delims = ":/?#[]@"
+    sub_delims = "!$&'()*+,;="
     reserved = gen_delims + sub_delims
-    quoted = '%'
+    quoted = "%"
     uric = reserved + unreserved + quoted
 
     @staticmethod
     def urify(value):
-        value = quoteInvalidChars(value)    # introduced by @gdalik
+        value = quoteInvalidChars(value)  # introduced by @gdalik
         if all(char in _Parser.uric for char in value):
             return value
         else:
-            raise ValueError("Only valid URI is acceptable.\n"
-                             f"Got `{value}`")
+            raise ValueError("Only valid URI is acceptable.\n" f"Got `{value}`")
 
     @staticmethod
     def check_element_nonleaf_content(element) -> None:
-        if element.text is not None and \
-                not element.text.isspace():
-            raise TypeError(f"Element <{element.tag}> nonleaf "
-                            "content is not allowed.\n"
-                            f"| Got `{element.text}`.")
+        if element.text is not None and not element.text.isspace():
+            raise TypeError(
+                f"Element <{element.tag}> nonleaf "
+                "content is not allowed.\n"
+                f"| Got `{element.text}`."
+            )
 
     def insert_title(self) -> None:
-        title = self.get_xml_leaf_parameter_value('title')
-        self.insert_parameter_if_not_null('title', title)
+        title = self.get_xml_leaf_parameter_value("title")
+        self.insert_parameter_if_not_null("title", title)
 
     def insert_creator(self) -> None:
-        creator = self.get_xml_leaf_parameter_value('creator')
-        self.insert_parameter_if_not_null('creator', creator)
+        creator = self.get_xml_leaf_parameter_value("creator")
+        self.insert_parameter_if_not_null("creator", creator)
 
     def insert_annotation(self) -> None:
-        annotation = self.get_xml_leaf_parameter_value('annotation')
-        self.insert_parameter_if_not_null('annotation', annotation)
+        annotation = self.get_xml_leaf_parameter_value("annotation")
+        self.insert_parameter_if_not_null("annotation", annotation)
 
     def insert_info(self):
-        info = self.get_xml_leaf_parameter_uri_value('info')
-        self.insert_parameter_if_not_null('info', info)
+        info = self.get_xml_leaf_parameter_uri_value("info")
+        self.insert_parameter_if_not_null("info", info)
 
     def insert_image(self) -> None:
-        image = self.get_xml_leaf_parameter_uri_value('image')
-        self.insert_parameter_if_not_null('image', image)
+        image = self.get_xml_leaf_parameter_uri_value("image")
+        self.insert_parameter_if_not_null("image", image)
 
     def insert_links(self) -> None:
         self.parsing_entity.link.extend(
-            Link.parse_from_xml_element(link) for link in
-            self.xml_element.findall("xspf:link", NS))
+            Link.parse_from_xml_element(link)
+            for link in self.xml_element.findall("xspf:link", NS)
+        )
 
     def insert_metas(self) -> None:
         self.parsing_entity.meta.extend(
-            Meta.parse_from_xml_element(meta) for meta in
-            self.xml_element.findall("xspf:meta", NS))
+            Meta.parse_from_xml_element(meta)
+            for meta in self.xml_element.findall("xspf:meta", NS)
+        )
 
     def insert_extensions(self) -> None:
         self.parsing_entity.extension.extend(
-            Extension.parse_from_xml_element(extension) for extension in
-            self.xml_element.findall('xspf:extension', NS))
+            Extension.parse_from_xml_element(extension)
+            for extension in self.xml_element.findall("xspf:extension", NS)
+        )
 
-    def insert_parameter_if_not_null(self, parameter_name: str,
-                                     parameter_value: Union[str, int]) -> None:
+    def insert_parameter_if_not_null(
+        self, parameter_name: str, parameter_value: Any
+    ) -> None:
         if parameter_value is not None:
             self.parsing_entity.__setattr__(parameter_name, parameter_value)
 
     def get_xml_leaf_parameter_value(self, parameter_name: str) -> str:
         return self._get_xml_leaf_parameter_value_with_urify(
-            parameter_name,
-            need_urify=False)
+            parameter_name, need_urify=False
+        )
 
     def get_xml_leaf_parameter_int_value(self, parameter_name: str) -> str:
         string = self.get_xml_leaf_parameter_value(parameter_name)
@@ -708,13 +736,12 @@ class _Parser():
 
     def get_xml_leaf_parameter_uri_value(self, parameter_name: str) -> str:
         return self._get_xml_leaf_parameter_value_with_urify(
-            parameter_name,
-            need_urify=True)
+            parameter_name, need_urify=True
+        )
 
-    def _get_xml_leaf_parameter_value_with_urify(self,
-                                                 parameter_name: str,
-                                                 need_urify: bool = False) \
-            -> str:
+    def _get_xml_leaf_parameter_value_with_urify(
+        self, parameter_name: str, need_urify: bool = False
+    ) -> str:
         self.check_single_element_in_root(parameter_name)
         parameter = self.xml_element.find("xspf:" + parameter_name, NS)
         if parameter is not None:
@@ -727,26 +754,32 @@ class _Parser():
 
     def check_single_element_in_root(self, element_name: str) -> None:
         if len(self.xml_element.findall("xspf:" + element_name, NS)) > 1:
-            raise TypeError(f"Got too many `{element_name}` elements in "
-                            "playlist.\n"
-                            f"{ET.tostring(self.xml_element)}")
+            raise TypeError(
+                f"Got too many `{element_name}` elements in "
+                "playlist.\n"
+                f"{ET.tostring(self.xml_element)}"
+            )
 
     @staticmethod
     def check_inserted_markup(element) -> None:
         if len(list(element)) > 0:
-            raise ValueError("Got nested elements in expected text. "
-                             "Probably, this is unexpected HTML "
-                             "insertion.\n"
-                             f"{ET.tostring(element)}")
+            raise ValueError(
+                "Got nested elements in expected text. "
+                "Probably, this is unexpected HTML "
+                "insertion.\n"
+                f"{ET.tostring(element)}"
+            )
 
     @staticmethod
     def check_forbidden_element_attributes(element) -> None:
-        if len(element.attrib) > 0 and \
-                element.keys() != \
-                ["{http://www.w3.org/XML/1998/namespace}base"]:
-            raise TypeError("Element contains forbidden attribute "
-                            f"{element.attrib}.\n"
-                            f"{ET.tostring(element)}")
+        if len(element.attrib) > 0 and element.keys() != [
+            "{http://www.w3.org/XML/1998/namespace}base"
+        ]:
+            raise TypeError(
+                "Element contains forbidden attribute "
+                f"{element.attrib}.\n"
+                f"{ET.tostring(element)}"
+            )
 
 
 class _TrackParser(_Parser):
@@ -764,10 +797,12 @@ class _TrackParser(_Parser):
         self.check_track_nonleaf_content()
 
     def check_root_name_and_namespace(self) -> None:
-        if self.xml_element.tag != ''.join(['{', NS["xspf"], '}track']):
-            raise TypeError("Track element not contain 'track' tag ",
-                            "or namespace setted wrong",
-                            object=self.xml_element)
+        if self.xml_element.tag != "".join(["{", NS["xspf"], "}track"]):
+            raise TypeError(
+                "Track element not contain 'track' tag ",
+                "or namespace setted wrong",
+                object=self.xml_element,
+            )
 
     def check_track_nonleaf_content(self) -> None:
         self.__class__.check_element_nonleaf_content(self.xml_element)
@@ -792,30 +827,31 @@ class _TrackParser(_Parser):
         if len(locations) > 0:
             self.parsing_entity.location = [
                 urlparse.unquote(self.__class__.urify(location.text.strip()))
-                for location in locations]
+                for location in locations
+            ]
 
     def insert_identifiers(self) -> None:
         identifiers = self.xml_element.findall("xspf:identifier", NS)
         if len(identifiers) > 0:
             self.parsing_entity.identifier = [
                 urlparse.unquote(self.__class__.urify(identifier.text.strip()))
-                for identifier in identifiers]
+                for identifier in identifiers
+            ]
 
     def insert_album(self) -> None:
-        album = self.get_xml_leaf_parameter_value('album')
-        self.insert_parameter_if_not_null('album', album)
+        album = self.get_xml_leaf_parameter_value("album")
+        self.insert_parameter_if_not_null("album", album)
 
     def insert_trackNum(self) -> None:
-        trackNum = self.get_xml_leaf_parameter_int_value('trackNum')
-        self.insert_parameter_if_not_null('trackNum', trackNum)
+        trackNum = self.get_xml_leaf_parameter_int_value("trackNum")
+        self.insert_parameter_if_not_null("trackNum", trackNum)
 
     def insert_duration(self) -> None:
-        duration = self.get_xml_leaf_parameter_int_value('duration')
-        self.insert_parameter_if_not_null('duration', duration)
+        duration = self.get_xml_leaf_parameter_int_value("duration")
+        self.insert_parameter_if_not_null("duration", duration)
 
 
 class _PlaylistParser(_Parser):
-
     def __init__(self, xml_element: ET.Element):
         super().__init__(xml_element)
         self.parsing_entity = Playlist()
@@ -835,58 +871,68 @@ class _PlaylistParser(_Parser):
         self.check_root_nonleaf_content()
 
     def check_namespace_is_exist(self) -> None:
-        if not self.xml_element.tag[0] == '{':
-            raise TypeError("Playlist namespace attribute is missing.\n"
-                            f"{ET.tostring(self.xml_element)}")
+        if not self.xml_element.tag[0] == "{":
+            raise TypeError(
+                "Playlist namespace attribute is missing.\n"
+                f"{ET.tostring(self.xml_element)}"
+            )
 
     def check_for_right_namespace_string(self) -> None:
-        if not self.xml_element.tag.startswith(
-                ''.join(['{', NS["xspf"], '}'])):
-            wrong_namespace = self.xml_element.tag.split('}')[0].lstrip('{')
-            raise ValueError("Namespace is wrong string.\n"
-                             f"| Expected `{NS['xspf']}`.\n"
-                             f"| Got `{wrong_namespace}`.")
+        if not self.xml_element.tag.startswith("".join(["{", NS["xspf"], "}"])):
+            wrong_namespace = self.xml_element.tag.split("}")[0].lstrip("{")
+            raise ValueError(
+                "Namespace is wrong string.\n"
+                f"| Expected `{NS['xspf']}`.\n"
+                f"| Got `{wrong_namespace}`."
+            )
 
     def check_root_tag_name(self) -> None:
-        if self.xml_element.tag != ''.join(['{', NS['xspf'], '}playlist']):
-            raise ValueError("Root tag name is not correct.\n"
-                             "| Expected: `playlist`.\n"
-                             f"| Got: `{self.xml_element.tag.split('}')[1]}`")
+        if self.xml_element.tag != "".join(["{", NS["xspf"], "}playlist"]):
+            raise ValueError(
+                "Root tag name is not correct.\n"
+                "| Expected: `playlist`.\n"
+                f"| Got: `{self.xml_element.tag.split('}')[1]}`"
+            )
 
     def check_version_attribute_is_exist(self) -> None:
         # Version attribute check.
-        if 'version' not in self.xml_element.keys():
+        if "version" not in self.xml_element.keys():
             raise TypeError("version attribute of playlist is missing.")
 
     def check_forbidden_root_attributes(self) -> None:
         root_attribs = self.xml_element.keys()
-        if not (root_attribs == ['version'] or root_attribs == [
-                'version', '{http://www.w3.org/XML/1998/namespace}base']):
+        if not (
+            root_attribs == ["version"]
+            or root_attribs == ["version", "{http://www.w3.org/XML/1998/namespace}base"]
+        ):
             forbidden_attributes = list(root_attribs)
             try:
-                forbidden_attributes.remove('version')
+                forbidden_attributes.remove("version")
             except ValueError:
                 pass
             try:
                 forbidden_attributes.remove(
-                    '{http://www.w3.org/XML/1998/namespace}base')
+                    "{http://www.w3.org/XML/1998/namespace}base"
+                )
             except ValueError:
                 pass
-            raise TypeError("<playlist> element contains forbidden elements.\n"
-                            f"{forbidden_attributes}")
+            raise TypeError(
+                "<playlist> element contains forbidden elements.\n"
+                f"{forbidden_attributes}"
+            )
 
     def check_value_of_version(self) -> None:
         version = int(self.xml_element.get("version"))
         # 0 version not implemented
         if version == 0:
-            raise ValueError("XSPF version 0 not maintained, "
-                             "switch to version 1.")
+            raise ValueError("XSPF version 0 not maintained, " "switch to version 1.")
         # Another version than 1 not accepted.
         elif version != 1:
             raise ValueError(
                 "The 'version' attribute must be 1.\n"
                 f"Your playlist version setted to {version}.\n"
-                "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2")
+                "See http://xspf.org/xspf-v1.html#rfc.section.4.1.1.1.2"
+            )
 
     def check_root_nonleaf_content(self) -> None:
         self.__class__.check_element_nonleaf_content(self.xml_element)
@@ -908,42 +954,43 @@ class _PlaylistParser(_Parser):
         self.insert_trackList()
 
     def insert_location(self) -> None:
-        location = self.get_xml_leaf_parameter_uri_value('location')
-        self.insert_parameter_if_not_null('location', location)
+        location = self.get_xml_leaf_parameter_uri_value("location")
+        self.insert_parameter_if_not_null("location", location)
 
     def insert_identifier(self) -> None:
-        identifier = self.get_xml_leaf_parameter_uri_value('identifier')
-        self.insert_parameter_if_not_null('identifier', identifier)
+        identifier = self.get_xml_leaf_parameter_uri_value("identifier")
+        self.insert_parameter_if_not_null("identifier", identifier)
 
     def insert_license(self) -> None:
-        license = self.get_xml_leaf_parameter_uri_value('license')
-        self.insert_parameter_if_not_null('license', license)
+        license = self.get_xml_leaf_parameter_uri_value("license")
+        self.insert_parameter_if_not_null("license", license)
 
     def insert_date(self) -> None:
-        date_string = self.get_xml_leaf_parameter_value('date')
+        date_string = self.get_xml_leaf_parameter_value("date")
         if date_string is not None:
             date_string = date_string.strip()
             date_object = datetime.fromisoformat(date_string)
-            self.insert_parameter_if_not_null('date', date_object)
+            self.insert_parameter_if_not_null("date", date_object)
 
     def insert_attributions(self) -> None:
-        self.check_single_element_in_root('attribution')
+        self.check_single_element_in_root("attribution")
         attribution = self.xml_element.find("xspf:attribution", NS)
         if attribution is not None:
             self.__class__.check_element_nonleaf_content(attribution)
             self.parsing_entity.attribution.extend(
-                Attribution().parse_from_xml_element(attr)
-                for attr in attribution)
+                Attribution().parse_from_xml_element(attr) for attr in attribution
+            )
 
     def insert_trackList(self) -> None:
         self.check_trackList_is_only_one()
         trackList = self.xml_element.find("xspf:trackList", NS)
         self.__class__.check_element_nonleaf_content(trackList)
         self.parsing_entity.trackList.extend(
-            Track.parse_from_xml_element(track) for track in trackList)
+            Track.parse_from_xml_element(track) for track in trackList
+        )
 
     def check_trackList_is_only_one(self) -> None:
-        self.check_single_element_in_root('trackList')
-        trackList = self.xml_element.find("xspf:trackList", NS)
-        if trackList is None:
+        self.check_single_element_in_root("trackList")
+        track_list = self.xml_element.find("xspf:trackList", NS)
+        if track_list is None:
             raise TypeError("trackList element not founded.")

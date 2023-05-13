@@ -6,7 +6,9 @@ import pytest
 
 from xspf_lib import Playlist
 
-TESTCASE_DIR: Final[Path] = Path(__file__).absolute().parent / 'testcase' / 'version_1' / 'pass'
+TESTCASE_DIR: Final[Path] = (
+    Path(__file__).absolute().parent / "testcase" / "version_1" / "pass"
+)
 
 
 def get_testcase_path(filename: str) -> Path:
@@ -18,7 +20,7 @@ valid_playlists: List[str] = [
     "playlist-empty-creator.xspf",
     "playlist-empty-title.xspf",
     "playlist-empty-meta.xspf",
-    'playlist-namespace-nondefault.xspf',
+    "playlist-namespace-nondefault.xspf",
     "playlist-namespace-two-additions.xspf",
     "playlist-xml-base.xspf",
     "track-empty-album.xspf",
@@ -44,11 +46,11 @@ valid_playlists: List[str] = [
     "track-noturi-link-rel.xspf",
     "track-noturi-location.xspf",
     "track-noturi-meta-rel.xspf",
-    'track-whitespace-in-between.xspf',
+    "track-whitespace-in-between.xspf",
 ]
 
 
-@pytest.mark.parametrize('filename', valid_playlists)
+@pytest.mark.parametrize("filename", valid_playlists)
 def test_playlist_parse(filename: str):
     Playlist.parse(get_testcase_path(filename))
 
@@ -74,8 +76,7 @@ def test_playlist_extensive():
     assert pl.identifier == "magnet:?xt=urn:sha1:YNCKHTQCWBTRNJIV4WNAE52SJUQCZO5C"
     assert pl.image == "http://example.com/img/mypicture"
     assert pl.date == datetime(
-        2005, 1, 8, 17, 10, 47,
-        tzinfo=timezone(timedelta(hours=-5))
+        2005, 1, 8, 17, 10, 47, tzinfo=timezone(timedelta(hours=-5))
     )
     assert pl.license == "http://creativecommons.org/licenses/by/1.0/"
     assert len(pl.attribution) == 2
@@ -102,8 +103,9 @@ def test_playlist_inverted_order():
     assert pl.location == "http://example.com/"
     assert pl.identifier == "http://example.com/"
     assert pl.image == "http://example.com/"
-    assert pl.date == datetime(2005, 1, 8, 17, 10, 47,
-                               tzinfo=timezone(timedelta(hours=-5)))
+    assert pl.date == datetime(
+        2005, 1, 8, 17, 10, 47, tzinfo=timezone(timedelta(hours=-5))
+    )
     assert pl.license == "http://example.com/"
     # TODO: check attribution
     assert pl.link[0].rel == "http://example.com/"
@@ -112,13 +114,13 @@ def test_playlist_inverted_order():
     assert pl.meta[0].rel == "http://example.com/"
     assert pl.meta[0].content == "value"
     assert len(pl.meta) == 2
-    assert pl.extension[0].application == 'http://example.com/'
+    assert pl.extension[0].application == "http://example.com/"
     assert len(pl.extension) == 2
     assert len(pl.trackList) == 0
 
 
 def test_playlist_namespace_nested_proper():
-    pl = Playlist.parse(get_testcase_path('playlist-namespace-nested-proper.xspf'))
+    pl = Playlist.parse(get_testcase_path("playlist-namespace-nested-proper.xspf"))
     assert pl.extension[0].application == "http://example.com/"
 
 
@@ -134,8 +136,9 @@ def test_playlist_relative_paths():
 
 def test_playlist_whitespace_dateTime():
     pl = Playlist.parse(get_testcase_path("playlist-whitespace-dateTime.xspf"))
-    assert pl.date == datetime(2005, 1, 8, 17, 10, 47,
-                               tzinfo=timezone(timedelta(hours=-5)))
+    assert pl.date == datetime(
+        2005, 1, 8, 17, 10, 47, tzinfo=timezone(timedelta(hours=-5))
+    )
 
 
 def test_track_extension():
@@ -189,8 +192,9 @@ def test_track_inverted_order():
     assert all(meta.rel == "http://example.com/" for meta in tr.meta)
     assert all(meta.content == "value" for meta in tr.meta)
     assert len(tr.extension) == 2
-    assert all(extension.application == "http://example.com/"
-               for extension in tr.extension)
+    assert all(
+        extension.application == "http://example.com/" for extension in tr.extension
+    )
 
 
 def test_track_whitespace_anyURI():

@@ -1,6 +1,6 @@
 import setuptools
 
-with open("README.rst", 'r') as readme:
+with open("README.rst", "r") as readme:
     long_desc = readme.read()
 
 setuptools.setup(
@@ -21,6 +21,6 @@ setuptools.setup(
         "Topic :: Multimedia :: Sound/Audio",
         "Topic :: Multimedia :: Video",
     ],
-    keywords='xspf playlist',
-    python_requires='>=3.8',
+    keywords="xspf playlist",
+    python_requires=">=3.8",
 )

@@ -4,6 +4,14 @@ xspf-lib
 
 .. image:: https://github.com/dem214/xspf-lib/workflows/Python%20package/badge.svg?branch=master
     :alt: Python package
+.. image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
+    :target: https://pycqa.github.io/isort/
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
+.. image:: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit
+   :target: https://github.com/pre-commit/pre-commit
+   :alt: pre-commit
+
 
 Library to work with xspf.
 

@@ -1,11 +1,11 @@
 __all__ = ["build_playlist", "build_track"]
 
-from typing import TYPE_CHECKING, Dict, Union
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Union
 from xml.etree import ElementTree as Et
 
 from .base import XMLAble
 from .constants import XML_NAMESPACE
-from .types import URI
 from .utils import quote
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ class _XML_Builder:
         self.add_info()
         self.add_image()
         self.add_album()
-        self.add_trackNum()
+        self.add_track_num()
         self.add_duration()
         self.add_links()
         self.add_metas()
@@ -55,7 +55,7 @@ class _XML_Builder:
         self.add_links()
         self.add_metas()
         self.add_extensions()
-        self.add_trackList()
+        self.add_tracklist()
 
         return self.xml_element
 
@@ -81,7 +81,7 @@ class _XML_Builder:
                 if attr.identifier is not None:
                     Et.SubElement(attribution, "identifier").text = attr.identifier
 
-    def add_trackList(self):
+    def add_tracklist(self):
         Et.SubElement(self.xml_element, "trackList").extend(
             track.to_xml_element() for track in self.entity.trackList
         )
@@ -104,7 +104,7 @@ class _XML_Builder:
     def add_album(self):
         self.add_simple_subelement("album")
 
-    def add_trackNum(self):
+    def add_track_num(self):
         self.add_simple_subelement("trackNum")
 
     def add_duration(self):
@@ -134,80 +134,10 @@ class _XML_Builder:
             Et.SubElement(self.xml_element, parameter_name).text = str(parameter)
 
     def add_iterable_parameter(self, parameter_name: str):
-        parameter_iter: iter[XMLAble] = getattr(self.entity, parameter_name)
+        parameter_iter: Iterable[XMLAble] = getattr(self.entity, parameter_name)
         self.xml_element.extend(
             parameter.to_xml_element() for parameter in parameter_iter
         )
-
-
-class _Builder:
-    def build_track(self, entity, parameters: Dict):
-        self.entity = entity
-        self.parameters = parameters
-
-        self.add_location()
-        self.add_identifier()
-        self.add_title()
-        self.add_creator()
-        self.add_annotation()
-        self.add_info()
-        self.add_image()
-        self.add_album()
-        self.add_trackNum()
-        self.add_duration()
-        self.add_link()
-        self.add_meta()
-        self.add_extension()
-
-        return self.entity
-
-    def add_location(self):
-        if isinstance(self.parameters["location"], URI):
-            self.entity.location = [self.parameters["location"]]
-        else:
-            self.entity.location = self.parameters["location"]
-
-    def add_identifier(self):
-        if isinstance(self.parameters["identifier"], URI):
-            self.entity.identifier = [self.parameters["identifier"]]
-        else:
-            self.entity.identifier = self.parameters["identifier"]
-
-    def add_title(self):
-        self.add_simple_parameter("title")
-
-    def add_creator(self):
-        self.add_simple_parameter("creator")
-
-    def add_annotation(self):
-        self.add_simple_parameter("annotation")
-
-    def add_info(self):
-        self.add_simple_parameter("info")
-
-    def add_image(self):
-        self.add_simple_parameter("image")
-
-    def add_album(self):
-        self.add_simple_parameter("album")
-
-    def add_trackNum(self):
-        self.add_simple_parameter("trackNum")
-
-    def add_duration(self):
-        self.add_simple_parameter("duration")
-
-    def add_link(self):
-        self.entity.link = list(self.parameters["link"])
-
-    def add_meta(self):
-        self.entity.meta = list(self.parameters["meta"])
-
-    def add_extension(self):
-        self.entity.extension = list(self.parameters["extension"])
-
-    def add_simple_parameter(self, parameter_name: str):
-        self.entity.__setattr__(parameter_name, self.parameters[parameter_name])
 
 
 def build_track(track: "Track") -> Et.Element:

@@ -1,31 +1,24 @@
 from collections import UserList
-from dataclasses import dataclass
+from collections.abc import Iterator
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, Iterable, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 from urllib import parse as urlparse
 from xml.etree import ElementTree as Et
 
 from .base import XMLAble
-from .builders import _Builder, build_playlist, build_track
+from .builders import build_playlist, build_track
 from .constants import XML_NAMESPACE
 from .types import URI
 from .utils import quote, urify
 
 
+@dataclass()
 class Extension(XMLAble):
-    """Class for XML extensions of XSPF playlists and tracks."""
+    """
+    Class for XML extensions of XSPF playlists and tracks.
 
-    __slots__ = ["application", "extra_attrib", "content"]
-
-    def __init__(
-        self,
-        application: URI,
-        extra_attrib: Dict[str, str] = {},
-        content: Iterable[Et.Element] = [],
-    ) -> None:
-        """Create Extension for xspf_lib.Track and xspf_lib.Playlist.
-
-        Extension must have attribute `application` URI wich point to
+    Extension must have attribute `application` URI wich point to
         extension standart. Extension can have an `elements` of type
         `xml.etree.ElementTree.Element`. Addtional xml attributes are welcome.
 
@@ -35,14 +28,14 @@ class Extension(XMLAble):
                 for xml extension
             :param content: list of `xml.etree.ElementTree.Elements`,
                 content of extension
+    """
 
-        """
-        self.application = application
-        self.extra_attrib = extra_attrib
-        self.content = content
+    application: URI
+    extra_attrib: Dict[str, str] = field(default_factory=dict)
+    content: List[Et.Element] = field(default_factory=list)
 
     def to_xml_element(self) -> Et.Element:
-        """Extention to `xml.etree.ElementTree.Element` conversion."""
+        """Extension to `xml.etree.ElementTree.Element` conversion."""
         el = Et.Element(
             "extension",
             attrib={"application": self.application, **self.extra_attrib},
@@ -70,8 +63,8 @@ class Link(XMLAble):
     XML namespaces.
 
     Content 2 arguments:
-        `rel` - URI of resourse type. (required)
-        `content` - URI of resourse.
+        `rel` - URI of resource type.
+        `content` - URI of resource.
     """
 
     rel: URI
@@ -99,8 +92,8 @@ class Meta(XMLAble):
     The meta element allows metadata fields to be added to XSPF.
 
     Content 2 arguments:
-        `rel` -- URI of resourse type. (required)
-        `content` -- value of metadata element. Usualy plain text.
+        `rel` -- URI of resource type.
+        `content` -- value of metadata element. Usually plain text.
     """
 
     rel: URI
@@ -128,23 +121,13 @@ class Meta(XMLAble):
         return el
 
 
+@dataclass()
 class Attribution(XMLAble):
     """Object representation of `attribution` element.
 
     Can contain `location` attribute or `identifier` atribute or both.
-    """
 
-    __slots__ = ["location", "identifier"]
-
-    def __init__(
-        self, location: Optional[URI] = None, identifier: Optional[URI] = None
-    ):
-        """Create new attribution.
-
-        Generate representation of `Attribution` element of
-        `xpsf_lib.Playlist`.
-
-        Parameters.
+    Parameters.
         :param location: -- data for `location` attribution.
         :param identifier: -- data for `identifier` attribution.
 
@@ -153,23 +136,12 @@ class Attribution(XMLAble):
         attribute. You also can add both `attribution` and `location` field to
         create 2 attribution elements. Not putting both attributes is little
         odd.
-        """
-        self.location = location
-        self.identifier = identifier
+    """
 
-    def __repr__(self) -> repr:
-        """Representation of `Attribute` object and that fields."""
-        resp = "<Attribution {"
-        if self.location is not None:
-            resp += f"location={self.location}"
-            if self.identifier is not None:
-                resp += ", "
-        if self.identifier is not None:
-            resp += f"identifier={self.identifier}"
-        resp += "}>"
-        return resp
+    location: Optional[URI] = None
+    identifier: Optional[URI] = None
 
-    def xml_elements(self):
+    def xml_elements(self) -> Iterator[Et.Element]:
         """Create generator of xml representation."""
         if self.location is not None:
             el = Et.Element("location")
@@ -181,7 +153,9 @@ class Attribution(XMLAble):
             yield el
 
     def to_xml_element(self) -> Et.Element:
-        return Et.Element("attribution").extend(self.xml_elements)
+        element = Et.Element("attribution")
+        element.extend(self.xml_elements())
+        return element
 
     @staticmethod
     def parse_from_xml_element(element) -> "Attribution":
@@ -195,7 +169,7 @@ class Attribution(XMLAble):
                 "Forbidden element in attribution.\n"
                 "Only `location` and `identifier` is "
                 "allowed.\n"
-                f"Got {Et.tostring(element)}."
+                f"Got {str(Et.tostring(element))}."
             )
 
 
@@ -214,9 +188,9 @@ class Track(XMLAble):
         album: Optional[str] = None,
         trackNum: Optional[int] = None,
         duration: Optional[int] = None,
-        link: Iterable[Link] = [],
-        meta: Iterable[Meta] = [],
-        extension: Iterable[Extension] = [],
+        link: Union[Iterable[Link], None] = None,
+        meta: Union[Iterable[Meta], None] = None,
+        extension: Union[Iterable[Extension], None] = None,
     ) -> None:
         """Track info class.
 
@@ -242,9 +216,30 @@ class Track(XMLAble):
         List of entities of `xspf_lib.Meta`.
         :param extension: Extension of non-XSPF XML elements. Must be a list
         tuples like `[Extension, ...]`
-
         """
-        _Builder().build_track(self, locals())
+        if isinstance(location, URI):
+            location = [location]
+        elif location is None:
+            location = []
+        self.location = list(location)
+        if isinstance(identifier, URI):
+            identifier = [identifier]
+        elif identifier is None:
+            identifier = []
+        self.identifier = list(identifier)
+        self.title = title
+        self.creator = creator
+        self.annotation = annotation
+        self.info = info
+        self.image = image
+        self.album = album
+        self.trackNum = trackNum
+        self.duration = duration
+        self.link: List[Link] = list(link) if link is not None else []
+        self.meta: List[Meta] = list(meta) if meta is not None else []
+        self.extension: List[Extension] = (
+            list(extension) if extension is not None else []
+        )
 
     __slots__ = (
         "location",
@@ -274,38 +269,34 @@ class Track(XMLAble):
         return repr
 
     @property
-    def trackNum(self) -> int:
+    def trackNum(self) -> Optional[int]:
         return self.__trackNum
 
     @trackNum.setter
-    def trackNum(self, value: int) -> None:
-        if value is not None:
-            if value < 0:  # modified by @gdalik in order to include trackNum == 0
-                raise ValueError(
-                    "trackNum must be positive number.\n"
-                    "| Expected: {1, 2, ..}\n"
-                    f"| Got: {value}"
-                )
-            self.__trackNum = value
-        else:
-            self.__trackNum = None
+    def trackNum(self, value: Optional[int]) -> None:
+        if (
+            value is not None and value < 0
+        ):  # modified by @gdalik in order to include trackNum == 0
+            raise ValueError(
+                "trackNum must be non negative number.\n"
+                "| Expected: {0, 1, 2, ..}\n"
+                f"| Got: {value}"
+            )
+        self.__trackNum = value
 
     @property
-    def duration(self) -> int:
+    def duration(self) -> Optional[int]:
         return self.__duration
 
     @duration.setter
-    def duration(self, value: int) -> None:
-        if value is not None:
-            if value < 0:
-                raise ValueError(
-                    "duration must be a non negative integer\n"
-                    "| Expected: {0, 1, 2, ..}\n"
-                    f"| Got: {value}"
-                )
-            self.__duration = value
-        else:
-            self.__duration = None
+    def duration(self, value: Optional[int]) -> None:
+        if value is not None and value < 0:
+            raise ValueError(
+                "duration must be a non negative integer\n"
+                "| Expected: {0, 1, 2, ..}\n"
+                f"| Got: {value}"
+            )
+        self.__duration = value
 
     def to_xml_element(self) -> Et.Element:
         """Create `xml.ElementTree.Element` of the track."""
@@ -322,27 +313,10 @@ class Track(XMLAble):
         return TrackBaseParser(element).parse()
 
 
+@dataclass(repr=False)
 class Playlist(UserList, XMLAble):
-    """Playlist info class."""
-
-    def __init__(
-        self,
-        title: Optional[str] = None,
-        creator: Optional[str] = None,
-        annotation: Optional[str] = None,
-        info: Optional[URI] = None,
-        location: Optional[URI] = None,
-        identifier: Optional[URI] = None,
-        image: Optional[URI] = None,
-        license: Optional[URI] = None,
-        attribution: Iterable[Union["Playlist", Attribution]] = [],
-        link: Iterable[Link] = [],
-        meta: Iterable[Meta] = [],
-        extension: Iterable[Extension] = [],
-        trackList: Iterable[Track] = [],
-    ) -> None:
-        """
-        Playlist info class.
+    """
+    Playlist info class.
 
         Parameters:
         :param title: Title of the playlist.
@@ -363,21 +337,24 @@ class Playlist(UserList, XMLAble):
             of xspf_lib.Extension objects.`
         :param trackList: Ordered list of track elements.
 
-        """
-        self.title = title
-        self.creator = creator
-        self.annotation = annotation
-        self.info = info
-        self.location = location
-        self.identifier = identifier
-        self.image = image
-        self.date = datetime.now(timezone.utc).astimezone()
-        self.license = license
-        self.attribution = list(attribution)
-        self.link = list(link)
-        self.meta = list(meta)
-        self.extension = list(extension)
-        self.trackList = list(trackList)
+    """
+
+    title: Optional[str] = None
+    creator: Optional[str] = None
+    annotation: Optional[str] = None
+    info: Optional[URI] = None
+    location: Optional[URI] = None
+    identifier: Optional[URI] = None
+    image: Optional[URI] = None
+    date: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc).astimezone()
+    )
+    license: Optional[URI] = None
+    attribution: List[Union["Playlist", Attribution]] = field(default_factory=list)
+    link: List[Link] = field(default_factory=list)
+    meta: List[Meta] = field(default_factory=list)
+    extension: List[Extension] = field(default_factory=list)
+    trackList: List[Track] = field(default_factory=list)
 
     @property
     def data(self):

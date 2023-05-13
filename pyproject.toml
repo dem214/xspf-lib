@@ -1,0 +1,5 @@
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+disable_error_code = ["str-bytes-safe"]

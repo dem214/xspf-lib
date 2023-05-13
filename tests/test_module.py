@@ -18,7 +18,7 @@ def test_track_init():
         annotation="comment",
         info="info.example.com",
         album="tr_album",
-        trackNum=1,
+        trackNum=0,
         duration=10,
         link=[Link("link_type", "link_uri")],
         meta=[Meta("meta_type1", "metadata1"), Meta("meta_type1", "metadata2")],
@@ -33,7 +33,7 @@ def test_track_init():
         "<annotation>comment</annotation>"
         "<info>info.example.com</info>"
         "<album>tr_album</album>"
-        "<trackNum>1</trackNum>"
+        "<trackNum>0</trackNum>"
         "<duration>10</duration>"
         '<link rel="link_type">link_uri</link>'
         '<meta rel="meta_type1">metadata1</meta>'

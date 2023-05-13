@@ -1,7 +1,7 @@
 __all__ = ["TrackBaseParser", "PlaylistBaseParser"]
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Generic, Optional, TypeVar, Union
 from urllib import parse as urlparse
 from xml.etree import ElementTree as Et
 
@@ -9,13 +9,14 @@ from .constants import XML_NAMESPACE
 from .elements import Attribution, Extension, Link, Meta, Playlist, Track
 from .utils import urify
 
+T = TypeVar("T", bound=Union[Track, Playlist])
 
-class BaseParser:
-    __slots__ = ["xml_element", "parsing_entity"]
+
+class BaseParser(Generic[T]):
+    parsing_entity: T
 
     def __init__(self, xml_element: Et.Element):
         self.xml_element = xml_element
-        self.parsing_entity = None
 
     @staticmethod
     def check_element_nonleaf_content(element: Et.Element) -> None:
@@ -70,33 +71,33 @@ class BaseParser:
         if parameter_value is not None:
             self.parsing_entity.__setattr__(parameter_name, parameter_value)
 
-    def get_xml_leaf_parameter_value(self, parameter_name: str) -> str:
+    def get_xml_leaf_parameter_value(self, parameter_name: str) -> Optional[str]:
         return self._get_xml_leaf_parameter_value_with_urify(
             parameter_name, need_urify=False
         )
 
-    def get_xml_leaf_parameter_int_value(self, parameter_name: str) -> int:
+    def get_xml_leaf_parameter_int_value(self, parameter_name: str) -> Optional[int]:
         value = self.get_xml_leaf_parameter_value(parameter_name)
-        if value is not None:
-            return int(value)
+        return int(value) if value is not None else None
 
-    def get_xml_leaf_parameter_uri_value(self, parameter_name: str) -> str:
+    def get_xml_leaf_parameter_uri_value(self, parameter_name: str) -> Optional[str]:
         return self._get_xml_leaf_parameter_value_with_urify(
             parameter_name, need_urify=True
         )
 
     def _get_xml_leaf_parameter_value_with_urify(
         self, parameter_name: str, need_urify: bool = False
-    ) -> str:
+    ) -> Optional[str]:
         self.check_single_element_in_root(parameter_name)
         parameter = self.xml_element.find("xspf:" + parameter_name, XML_NAMESPACE)
-        if parameter is not None:
-            self.__class__.check_inserted_markup(parameter)
-            self.__class__.check_forbidden_element_attributes(parameter)
-            ret_text = parameter.text
-            if need_urify:
-                ret_text = urify(ret_text)
-            return ret_text
+        if parameter is None:
+            return None
+        self.check_inserted_markup(parameter)
+        self.check_forbidden_element_attributes(parameter)
+        ret_text = parameter.text
+        if ret_text is None:
+            return None
+        return ret_text if not need_urify else urify(ret_text)
 
     def check_single_element_in_root(self, element_name: str) -> None:
         if len(self.xml_element.findall("xspf:" + element_name, XML_NAMESPACE)) > 1:
@@ -128,7 +129,7 @@ class BaseParser:
             )
 
 
-class TrackBaseParser(BaseParser):
+class TrackBaseParser(BaseParser[Track]):
     def __init__(self, xml_element: Et.Element):
         super().__init__(xml_element)
         self.parsing_entity = Track()
@@ -147,7 +148,6 @@ class TrackBaseParser(BaseParser):
             raise TypeError(
                 "Track element not contain 'track' tag ",
                 "or namespace setted wrong",
-                object=self.xml_element,
             )
 
     def check_track_nonleaf_content(self) -> None:
@@ -172,7 +172,9 @@ class TrackBaseParser(BaseParser):
         locations = self.xml_element.findall("xspf:location", XML_NAMESPACE)
         if len(locations) > 0:
             self.parsing_entity.location = [
-                urlparse.unquote(urify(location.text.strip())) for location in locations
+                urlparse.unquote(urify(location.text.strip()))
+                for location in locations
+                if location.text is not None
             ]
 
     def insert_identifiers(self) -> None:
@@ -181,6 +183,7 @@ class TrackBaseParser(BaseParser):
             self.parsing_entity.identifier = [
                 urlparse.unquote(urify(identifier.text.strip()))
                 for identifier in identifiers
+                if identifier.text is not None
             ]
 
     def insert_album(self) -> None:
@@ -196,7 +199,7 @@ class TrackBaseParser(BaseParser):
         self.insert_parameter_if_not_null("duration", duration)
 
 
-class PlaylistBaseParser(BaseParser):
+class PlaylistBaseParser(BaseParser[Playlist]):
     def __init__(self, xml_element: Et.Element):
         super().__init__(xml_element)
         self.parsing_entity = Playlist()
@@ -269,10 +272,12 @@ class PlaylistBaseParser(BaseParser):
             )
 
     def check_value_of_version(self) -> None:
-        version = int(self.xml_element.get("version"))
+        version = int(self.xml_element.get("version", "0"))
         # 0 version not implemented
         if version == 0:
-            raise ValueError("XSPF version 0 not maintained, " "switch to version 1.")
+            raise ValueError(
+                "XSPF version 0 is not maintained, " "switch to version 1."
+            )
         # Another version than 1 not accepted.
         elif version != 1:
             raise ValueError(
@@ -331,7 +336,9 @@ class PlaylistBaseParser(BaseParser):
     def insert_tracklist(self) -> None:
         self.check_tracklist_is_only_one()
         tracklist = self.xml_element.find("xspf:trackList", XML_NAMESPACE)
-        self.__class__.check_element_nonleaf_content(tracklist)
+        if tracklist is None:
+            return
+        self.check_element_nonleaf_content(tracklist)
         self.parsing_entity.trackList.extend(
             Track.parse_from_xml_element(track) for track in tracklist
         )

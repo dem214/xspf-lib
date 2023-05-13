@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Final
+from typing import Final, List
 
 import pytest
 
@@ -13,7 +13,7 @@ def get_testcase_path(filename: str) -> Path:
     return TESTCASE_DIR / filename
 
 
-valid_playlists: list[str] = [
+valid_playlists: List[str] = [
     "playlist-empty-annotation.xspf",
     "playlist-empty-creator.xspf",
     "playlist-empty-title.xspf",

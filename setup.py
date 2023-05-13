@@ -22,5 +22,5 @@ setuptools.setup(
         "Topic :: Multimedia :: Video",
     ],
     keywords="xspf playlist",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )

@@ -1,6 +1,6 @@
 [project]
 name = "xspf-lib"
-version = "0.3.1"
+version = "0.3.2"
 description = "Library for work with xspf format"
 authors = [
     {name = "Dzmitry Izaitka", email = "dem214overlord@gmail.com"},
@@ -31,13 +31,24 @@ build-backend = "pdm.backend"
 test = [
     "pytest>=7.3.1",
 ]
+lint = [
+    "flake8>=5.0.4",
+    "flake8-pyprojecttoml>=0.0.2",
+    "mypy>=1.3.0",
+]
 
 [tool.pdm.scripts]
 test = "pytest"
-lint = "flake8"
+flake8 = "flake8 xspf_lib"
+mypy = "mypy xspf_lib"
+lint = {composite = ["flake8", "mypy"]}
 
 [tool.isort]
 profile = "black"
 
 [tool.mypy]
 disable_error_code = ["str-bytes-safe"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = "E203"

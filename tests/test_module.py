@@ -147,8 +147,6 @@ def test_bad_duration_string():
 
 
 def test_playlist_writing():
-    import xspf_lib as xspf
-
     killer_queen = Track(
         location="file:///home/music/killer_queen.mp3",
         title="Killer Queen",

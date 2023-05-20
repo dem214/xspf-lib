@@ -1,3 +1,41 @@
+[project]
+name = "xspf-lib"
+version = "0.3.1"
+description = "Library for work with xspf format"
+authors = [
+    {name = "Dzmitry Izaitka", email = "dem214overlord@gmail.com"},
+]
+dependencies = []
+requires-python = ">=3.7"
+readme = "README.rst"
+license = {text = "MIT"}
+keywords = ["xspf playlist"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Source = "https://github.com/dem214/xspf-lib"
+"Bug Tracker" = "https://github.com/dem214/xspf-lib/issues"
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm.dev-dependencies]
+test = [
+    "pytest>=7.3.1",
+]
+
+[tool.pdm.scripts]
+test = "pytest"
+lint = "flake8"
+
 [tool.isort]
 profile = "black"
 

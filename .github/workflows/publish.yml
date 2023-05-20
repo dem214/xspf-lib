@@ -20,7 +20,7 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: build_distribution
-        path: /dist/
+        path: dist/
 
   pypi-publish:
     name: publish on pypi
@@ -30,13 +30,13 @@ jobs:
       url: https://pypi.org/p/xspf-lib
     permissions:
       id-token: write
+    needs: build
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/download-artifacts@v3
+    - uses: actions/download-artifact@v3
       with:
         name: build_distribution
-        path: /dist/
+        path: dist/
 
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1

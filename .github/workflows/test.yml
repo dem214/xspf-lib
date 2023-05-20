@@ -18,7 +18,7 @@ jobs:
           cache: true
       - name: Install dependencies
         run: |
-          pdm update -dG lint --no-default
+          pdm sync -dG lint --no-default
       - name: Test
         run: |
           pdm run lint
@@ -39,7 +39,7 @@ jobs:
         cache: true
     - name: Install dependencies
       run: |
-        pdm update -dG test --no-default
+        pdm sync -dG test --no-default
     - name: Test
       run: |
         pdm run test

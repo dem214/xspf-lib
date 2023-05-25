@@ -318,7 +318,6 @@ class Playlist(UserList, XMLAble):
     """
     Playlist info class.
 
-
     :param creator: Name of the entity that authored playlist.
     :param annotation: Comment of the playlist.
     :param info: URI of a web page to find out more about playlist.
@@ -327,7 +326,9 @@ class Playlist(UserList, XMLAble):
     :param image: URI of image to display in the absence of track image.
     :param license: URI of resource that describes the licence of playlist.
     :param attribution: List of attributed playlists or `Attribution` entities.
-    :param link: The link elements allows playlist extended without the use of XML namespace.
+    :param link: The link elements allows playlist extended without the
+        use of XML namespace.
+
     :param meta: Metadata fields of playlist.
     :param extension: Extension of non-XSPF XML element
     :param trackList: Ordered list of track elements.

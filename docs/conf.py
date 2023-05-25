@@ -7,11 +7,6 @@
 # -- Path setup --------------------------------------------------------------
 
 import sys
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
 from pathlib import Path
 
 sys.path.insert(0, Path(__file__).parents[1].as_posix())
@@ -33,6 +28,7 @@ extensions = [
     "sphinx.ext.duration",
     "sphinx.ext.doctest",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

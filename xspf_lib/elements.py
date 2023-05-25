@@ -1,7 +1,6 @@
 from collections import UserList
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from os import PathLike
 from typing import Dict, Iterable, Iterator, List, Optional, Union
 from urllib import parse as urlparse
 from xml.etree import ElementTree as Et
@@ -389,9 +388,7 @@ class Playlist(UserList, XMLAble):
         )
 
     @classmethod
-    def parse(
-        cls, filename: Union[str, bytes, PathLike[str], PathLike[bytes], int]
-    ) -> "Playlist":
+    def parse(cls, filename: Union[str, bytes, int]) -> "Playlist":
         """
         Parse XSPF file into :py:class:`xspf_lib.Playlist` entity.
 

@@ -390,8 +390,7 @@ class Playlist(UserList, XMLAble):
 
     @classmethod
     def parse(
-        cls,
-        filename: str | bytes | PathLike[str] | PathLike[bytes] | int,
+        cls, filename: Union[str, bytes, PathLike[str], PathLike[bytes], int]
     ) -> "Playlist":
         """
         Parse XSPF file into :py:class:`xspf_lib.Playlist` entity.

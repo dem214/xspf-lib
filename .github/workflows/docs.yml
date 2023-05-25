@@ -1,9 +1,11 @@
-name: Sphinx build
+name: Build docs with sphinx and deploy
 
-on: push
+on:
+  push:
+    branches: [ master ]
 
 jobs:
-  build:
+  build_docs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3

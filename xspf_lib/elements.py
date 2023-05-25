@@ -1,6 +1,7 @@
 from collections import UserList
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from os import PathLike
 from typing import Dict, Iterable, Iterator, List, Optional, Union
 from urllib import parse as urlparse
 from xml.etree import ElementTree as Et
@@ -317,24 +318,19 @@ class Playlist(UserList, XMLAble):
     """
     Playlist info class.
 
-        Parameters:
-        :param title: Title of the playlist.
-        :param creator: Name of the entity that authored playlist.
-        :param annotation: Comment of the playlist.
-        :param info: URI of a web page to find out more about playlist.
-        :param location: Source URI for the playlist
-        :param identifier: Canonical URI for the playlist.
-        :param image: URI of image to display in the absence of track image.
-        :param license: URI of resource that describes the licence of playlist.
-        :param attribution: List of attributed playlists or `Attribution`
-        entities.
-        :param link: The link elements allows playlist extended without the
-        use of XML namespace. List of entities of `xspf.Link`.
-        :param meta: Metadata fields of playlist.
-        List of entities of `xspf.Meta`.
-        :param extension: Extension of non-XSPF XML elements. Must be a list
-            of xspf_lib.Extension objects.`
-        :param trackList: Ordered list of track elements.
+
+    :param creator: Name of the entity that authored playlist.
+    :param annotation: Comment of the playlist.
+    :param info: URI of a web page to find out more about playlist.
+    :param location: Source URI for the playlist
+    :param identifier: Canonical URI for the playlist.
+    :param image: URI of image to display in the absence of track image.
+    :param license: URI of resource that describes the licence of playlist.
+    :param attribution: List of attributed playlists or `Attribution` entities.
+    :param link: The link elements allows playlist extended without the use of XML namespace.
+    :param meta: Metadata fields of playlist.
+    :param extension: Extension of non-XSPF XML element
+    :param trackList: Ordered list of track elements.
 
     """
 
@@ -392,8 +388,16 @@ class Playlist(UserList, XMLAble):
         )
 
     @classmethod
-    def parse(cls, filename) -> "Playlist":
-        """Parse XSPF file into `xspf_lib.Playlist` entity."""
+    def parse(
+        cls,
+        filename: str | bytes | PathLike[str] | PathLike[bytes] | int,
+    ) -> "Playlist":
+        """
+        Parse XSPF file into :py:class:`xspf_lib.Playlist` entity.
+
+        >>> import xspf_lib
+        >>> playlist = xspf_lib.parse("./playlist_file.xspf")
+        """
         return cls.parse_from_xml_element(Et.parse(filename).getroot())
 
     @staticmethod

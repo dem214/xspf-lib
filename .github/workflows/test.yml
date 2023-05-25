@@ -12,14 +12,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up PDM with
+      - name: Set up PDM
         uses: pdm-project/setup-pdm@v3
         with:
           cache: true
       - name: Install dependencies
         run: |
           pdm sync -dG lint --no-default
-      - name: Test
+      - name: Lint
         run: |
           pdm run lint
 

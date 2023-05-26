@@ -347,20 +347,37 @@ class Playlist(UserList, XMLAble):
     """
     Playlist info class.
 
+    :param title: Name of playlist.
+    :type title: str | None
     :param creator: Name of the entity that authored playlist.
+    :type creator: str | None
     :param annotation: Comment of the playlist.
+    :type creator: str | None
     :param info: URI of a web page to find out more about playlist.
-    :param location: Source URI for the playlist
+    :type info: URI | None
+    :param location: Source URI for the playlist.
+    :type location: URI | None
     :param identifier: Canonical URI for the playlist.
+    :type identifier: URI | None
     :param image: URI of image to display in the absence of track image.
+    :type image: URI | None
+    :param date: Datetime of creation of playlist.
+    :type date: datetime | None
     :param license: URI of resource that describes the licence of playlist.
+    :type license: URI | None
     :param attribution: List of attributed playlists or `Attribution` entities.
+    :type attribution: list[:py:class:`xspf_lib.Playlist`
+        | :py:class:`xspf_lib.Attribution`]
+        | None
     :param link: The link elements allows playlist extended without the
         use of XML namespace.
-
+    :type link: list[:py:class:`xspf_lib.Link`] | None
     :param meta: Metadata fields of playlist.
+    :type meta: list[:py:class:`xspf_lib.Meta`] | None
     :param extension: Extension of non-XSPF XML element
+    :type extension: list[:py:class:`xspf_lib.Extension`] | None
     :param trackList: Ordered list of track elements.
+    :type trackList: list[:py:class:`xspf_lib.Track`] | None
 
     >>> import xspf_lib as xspf
     >>> playlist = xspf.Playlist(
@@ -443,6 +460,9 @@ class Playlist(UserList, XMLAble):
     def parse(cls, filename: Union[str, bytes, int]) -> "Playlist":
         """
         Parse XSPF file into :py:class:`xspf_lib.Playlist` entity.
+
+        :returns: ready and packed playlist
+        :rtype: Playlist
 
         >>> import xspf_lib
         >>> playlist = xspf_lib.parse("./playlist_file.xspf")

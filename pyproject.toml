@@ -22,6 +22,7 @@ classifiers = [
 [project.urls]
 Source = "https://github.com/dem214/xspf-lib"
 "Bug Tracker" = "https://github.com/dem214/xspf-lib/issues"
+Documentation = "https://xspf-lib.readthedocs.io/"
 
 [build-system]
 requires = ["pdm-backend"]

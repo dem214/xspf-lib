@@ -1,6 +1,5 @@
 [project]
 name = "xspf-lib"
-version = "0.3.3"
 description = "Library for work with xspf format"
 authors = [
     {name = "Dzmitry Izaitka", email = "dem214overlord@gmail.com"},
@@ -18,6 +17,7 @@ classifiers = [
     "Topic :: Multimedia :: Video",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+dynamic = ["version"]
 
 [project.urls]
 Source = "https://github.com/dem214/xspf-lib"
@@ -27,6 +27,11 @@ Documentation = "https://xspf-lib.readthedocs.io/"
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm.version]
+source = "scm"
+write_to = "xspf_lib/_version.py"
+write_template = "__version__ = '{}'"
 
 [tool.pdm.dev-dependencies]
 test = [

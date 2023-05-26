@@ -1,6 +1,6 @@
 [project]
 name = "xspf-lib"
-version = "0.3.2"
+version = "0.3.3"
 description = "Library for work with xspf format"
 authors = [
     {name = "Dzmitry Izaitka", email = "dem214overlord@gmail.com"},

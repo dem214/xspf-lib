@@ -11,3 +11,7 @@ Reference
     xspf_lib.Playlist.write
     xspf_lib.Playlist.xml_string
     xspf_lib.Track
+    xspf_lib.Extension
+    xspf_lib.Link
+    xspf_lib.Meta
+    xspf_lib.Attribution

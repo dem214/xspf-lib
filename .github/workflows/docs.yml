@@ -15,4 +15,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: html-docs
-        path: build/_html/
+        path: docs/build/_html/

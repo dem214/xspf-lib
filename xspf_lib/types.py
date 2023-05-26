@@ -1,6 +1,7 @@
 from typing import TypeVar
 
 URI = str
+Milliseconds = int
 
 T = TypeVar("T")
 

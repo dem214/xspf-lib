@@ -8,7 +8,7 @@ from xml.etree import ElementTree as Et
 from .base import XMLAble
 from .builders import build_playlist, build_track
 from .constants import XML_NAMESPACE
-from .types import URI
+from .types import URI, Milliseconds
 from .utils import quote, urify
 
 
@@ -17,24 +17,27 @@ class Extension(XMLAble):
     """
     Class for XML extensions of XSPF playlists and tracks.
 
-    Extension must have attribute `application` URI wich point to
-        extension standart. Extension can have an `elements` of type
-        `xml.etree.ElementTree.Element`. Addtional xml attributes are welcome.
+    Extension must have attribute `application` URI which point to
+    extension standard. Extension can have an `elements` of type
+    :py:class:`xml.etree.ElementTree.Element`. Additional xml attributes are welcome.
 
-            Parameters
-            :param: application: URI of specification of extension
-            :param extra_attrib: list additionsl xml attributes
-                for xml extension
-            :param content: list of `xml.etree.ElementTree.Elements`,
-                content of extension
+    :param application: URI of specification of extension.
+    :param extra_attrib: List additional xml attributes for xml extension.
+    :type extra_attrib: dict[str, str]
+    :param content: Elements of content.
+    :type content: list[:py:class:`xml.etree.ElementTree.Element`]
+
     """
 
     application: URI
+    """URI of specification of extension."""
     extra_attrib: Dict[str, str] = field(default_factory=dict)
+    """List additional xml attributes for xml extension."""
     content: List[Et.Element] = field(default_factory=list)
+    """Elements of content."""
 
     def to_xml_element(self) -> Et.Element:
-        """Extension to `xml.etree.ElementTree.Element` conversion."""
+        """Extension to :py:class:`xml.etree.ElementTree.Element` conversion."""
         el = Et.Element(
             "extension",
             attrib={"application": self.application, **self.extra_attrib},
@@ -44,7 +47,7 @@ class Extension(XMLAble):
 
     @staticmethod
     def parse_from_xml_element(element: Et.Element) -> "Extension":
-        """`xml.etree.ElementTree.Element` to Extension coversion."""
+        """:py:class:`xml.etree.ElementTree.Element` to Extension conversion."""
         application = urify(element.get("application"))
         if application is None:
             raise TypeError("Extension parsing missing attribute `application`")
@@ -61,13 +64,16 @@ class Link(XMLAble):
     The link element allows XSPF to be extended without the use of
     XML namespaces.
 
-    Content 2 arguments:
-        `rel` - URI of resource type.
-        `content` - URI of resource.
+    :param rel: URI of resource type.
+    :type rel: URI
+    :param content: URI of resource.
+    :type content: URI
     """
 
     rel: URI
+    """URI of resource type."""
     content: URI = ""
+    """URI of resource."""
 
     @staticmethod
     def parse_from_xml_element(element):
@@ -90,13 +96,16 @@ class Meta(XMLAble):
 
     The meta element allows metadata fields to be added to XSPF.
 
-    Content 2 arguments:
-        `rel` -- URI of resource type.
-        `content` -- value of metadata element. Usually plain text.
+    :param rel: URI of resource type.
+    :type rel: URL
+    :param content: Value of metadata element. Usually plain text.
+    :type content: str
     """
 
     rel: URI
+    """URI of resource type."""
     content: str = ""
+    """Value of metadata element. Usually plain text."""
 
     @staticmethod
     def parse_from_xml_element(element):
@@ -124,17 +133,13 @@ class Meta(XMLAble):
 class Attribution(XMLAble):
     """Object representation of `attribution` element.
 
-    Can contain `location` attribute or `identifier` atribute or both.
+    Can contain `location` attribute or `identifier` attribute or both.
 
-    Parameters.
-        :param location: -- data for `location` attribution.
-        :param identifier: -- data for `identifier` attribution.
-
-        It's obvious to add something to `location` to create location
-        attribution. Or, you can add only `identifier` to create identifier
-        attribute. You also can add both `attribution` and `location` field to
-        create 2 attribution elements. Not putting both attributes is little
-        odd.
+    It's obvious to add something to `location` to create location
+    attribution. Or, you can add only `identifier` to create identifier
+    attribute. You also can add both `attribution` and `location` field to
+    create 2 attribution elements. Not putting both attributes is little
+    odd.
     """
 
     location: Optional[URI] = None
@@ -186,59 +191,84 @@ class Track(XMLAble):
         image: Optional[URI] = None,
         album: Optional[str] = None,
         trackNum: Optional[int] = None,
-        duration: Optional[int] = None,
+        duration: Optional[Milliseconds] = None,
         link: Union[Iterable[Link], None] = None,
         meta: Union[Iterable[Meta], None] = None,
         extension: Union[Iterable[Extension], None] = None,
     ) -> None:
-        """Track info class.
+        """
+        Generate instances of tracks, ready to be put
+        in :py:class:`xspf_lib.Playlist` class.
 
-        Generate instances of tracks, ready to be put in Playlist class.
-
-        Parameters
-        :param location: URI or list of URI of resource to be rendered
-        :param identifier: canonical ID or list of ID for this resource
-        :param title: name of the track
-        :param creator: name of creator of resource
-        :param annotation: comment on the track
+        :param location: URI or list of URI of resource to be rendered.
+        :type location: list[URI] | URI | None
+        :param identifier: Canonical ID or list of ID for this resource.
+        :type identifier: list[URI] | URI | None
+        :param title: Name of the track.
+        :type title: str | None
+        :param creator: Name of creator of resource.
+        :type creator: str | None
+        :param annotation: Comment on the track.
+        :type annotation: str | None
         :param info: IRI of a place where info of this resource can be
-        founded
+            founded.
+        :type info: URI | None
         :param image: URI of an image to display for the duration of the
-        track
-        :param album: name of the collection from which this resource comes
-        :param trackNum: integer giving the ordinal position of the media
-        on the album
-        :param duration: the time to render a resource in milliseconds
+            track.
+        :type image: URL | None
+        :param album: Name of the collection from which this resource comes.
+        :type album: str | None
+        :param trackNum: Integer giving the ordinal position of the media
+            on the album. Must be gte 0
+        :type trackNum: int | None
+        :param duration: The time to render a resource in milliseconds.
+        :type duration: int | None
         :param link: The link elements allows playlist extended without the
-        use of XML namespace. List of entities of `xspf_lib.Link`.
+            use of XML namespace.
+        :type link: list[:py:class:`xspf_lib.Link`] | None
         :param meta: Metadata fields of playlist.
-        List of entities of `xspf_lib.Meta`.
-        :param extension: Extension of non-XSPF XML elements. Must be a list
-        tuples like `[Extension, ...]`
+        :type meta: list[:py:class:`xspf_lib.Meta`] | None
+        :param extension: Extension of non-XSPF XML elements.
+        :type extension: list[:py:class:`xspf_lib.Extension`] | None
         """
         if isinstance(location, URI):
             location = [location]
         elif location is None:
             location = []
         self.location = list(location)
+        """URI or list of URI of resource to be rendered."""
         if isinstance(identifier, URI):
             identifier = [identifier]
         elif identifier is None:
             identifier = []
         self.identifier = list(identifier)
+        """Canonical ID or list of ID for this resource."""
         self.title = title
+        """Name of the track."""
         self.creator = creator
+        """Name of creator of resource."""
         self.annotation = annotation
+        """Comment on the track."""
         self.info = info
+        """URI of an image to display for the duration of the track."""
         self.image = image
+        """URI of an image to display for the duration of the track."""
         self.album = album
+        """Name of the collection from which this resource comes."""
         self.trackNum = trackNum
+        """Integer giving the ordinal position of the media on the album."""
         self.duration = duration
+        """The time to render a resource in milliseconds."""
         self.link: List[Link] = list(link) if link is not None else []
+        """
+        The link elements allows playlist extended without the use of XML namespace.
+        """
         self.meta: List[Meta] = list(meta) if meta is not None else []
+        """Extension of non-XSPF XML elements."""
         self.extension: List[Extension] = (
             list(extension) if extension is not None else []
         )
+        """Extension of non-XSPF XML elements."""
 
     __slots__ = (
         "location",
@@ -332,24 +362,46 @@ class Playlist(UserList, XMLAble):
     :param extension: Extension of non-XSPF XML element
     :param trackList: Ordered list of track elements.
 
+    >>> import xspf_lib as xspf
+    >>> playlist = xspf.Playlist(
+    >>>     title="Some Tracks",
+    >>>     creator="myself",
+    >>>     annotation="I did this only for examples!.",
+    >>>     trackList=[killer_queen, anbtd]
+    >>> )
+
     """
 
     title: Optional[str] = None
+    """Name of playlist."""
     creator: Optional[str] = None
+    """Name of the entity that authored playlist."""
     annotation: Optional[str] = None
+    """Comment of the playlist."""
     info: Optional[URI] = None
+    """URI of a web page to find out more about playlist."""
     location: Optional[URI] = None
+    """Source URI for the playlist."""
     identifier: Optional[URI] = None
+    """Canonical URI for the playlist."""
     image: Optional[URI] = None
+    """URI of image to display in the absence of track image."""
     date: datetime = field(
         default_factory=lambda: datetime.now(timezone.utc).astimezone()
     )
+    """Datetime of creation of playlist."""
     license: Optional[URI] = None
+    """URI of resource that describes the licence of playlist."""
     attribution: List[Union["Playlist", Attribution]] = field(default_factory=list)
+    """List of attributed playlists or `Attribution` entities."""
     link: List[Link] = field(default_factory=list)
+    """The link elements allows playlist extended without the use of XML namespace."""
     meta: List[Meta] = field(default_factory=list)
+    """Metadata fields of playlist."""
     extension: List[Extension] = field(default_factory=list)
+    """Extension of non-XSPF XML element."""
     trackList: List[Track] = field(default_factory=list)
+    """Ordered list of track elements."""
 
     @property
     def data(self):
@@ -377,11 +429,11 @@ class Playlist(UserList, XMLAble):
         """Return XML representation of playlist."""
         return Et.tostring(self.to_xml_element(), encoding="UTF-8").decode()
 
-    def write(self, file_or_filename, encoding="utf-8") -> None:
+    def write(self, file_or_filename, encoding="UTF-8") -> None:
         """Write playlist into file."""
         self.xml_eltree.write(
             file_or_filename,
-            encoding="UTF-8",
+            encoding=encoding,
             method="xml",
             short_empty_elements=True,
             xml_declaration=True,

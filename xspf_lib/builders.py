@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .elements import Playlist, Track
 
 
-class _XML_Builder:
+class _XMLBuilder:
     def __init__(self):
         self.entity: Union["Track", "Playlist", None] = None
 
@@ -141,8 +141,8 @@ class _XML_Builder:
 
 
 def build_track(track: "Track") -> Et.Element:
-    return _XML_Builder().build_track(track)
+    return _XMLBuilder().build_track(track)
 
 
 def build_playlist(playlist: "Playlist") -> Et.Element:
-    return _XML_Builder().build_playlist(playlist)
+    return _XMLBuilder().build_playlist(playlist)
